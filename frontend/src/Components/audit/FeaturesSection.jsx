@@ -1,0 +1,685 @@
+import React, { useState } from 'react'
+import { motion } from 'framer-motion'
+
+const FeaturesSection = () => {
+  const [hoveredCard, setHoveredCard] = useState(null)
+
+  const features = [
+    {
+      title: "WHOIS Analysis",
+      description: "Complete domain registration details and historical ownership tracking",
+      gradient: "from-blue-500 to-cyan-500",
+      icon: "🔍",
+      details: ["Registrar Information", "Historical Ownership", "Status Tracking"],
+      color: "#3B82F6",
+      pattern: "circles"
+    },
+    {
+      title: "Technology Stack",
+      description: "Identify frameworks, CMS, and third-party services with detailed mapping",
+      gradient: "from-purple-500 to-pink-500",
+      icon: "⚙️",
+      details: ["Framework Detection", "CMS Identification", "Service Mapping"],
+      color: "#8B5CF6",
+      pattern: "grid"
+    },
+    {
+      title: "Email Configuration",
+      description: "Analyze email providers and security settings with validation",
+      gradient: "from-green-500 to-emerald-500",
+      icon: "📧",
+      details: ["Email Provider Analysis", "MX Record Configuration", "Contact Extraction"],
+      color: "#10B981",
+      pattern: "waves"
+    },
+    {
+      title: "Security Audit",
+      description: "Comprehensive security checks and vulnerability assessment",
+      gradient: "from-red-500 to-orange-500",
+      icon: "🛡️",
+      details: ["SSL Certificate Analysis", "Security Headers", "Vulnerability Scan"],
+      color: "#EF4444",
+      pattern: "shields"
+    },
+    {
+      title: "Performance Metrics",
+      description: "Measure load times and optimize website speed with insights",
+      gradient: "from-yellow-500 to-amber-500",
+      icon: "🚀",
+      details: ["Load Time Analysis", "Performance Scoring", "Optimization Tips"],
+      color: "#F59E0B",
+      pattern: "dots"
+    },
+    {
+      title: "Advertising Networks",
+      description: "Detect ad networks and tracking scripts with analytics",
+      gradient: "from-indigo-500 to-violet-500",
+      icon: "📊",
+      details: ["Ad Network Detection", "Tracking Scripts", "Analytics Mapping"],
+      color: "#6366F1",
+      pattern: "lines"
+    }
+  ]
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { 
+        staggerChildren: 0.15,
+        duration: 0.8
+      }
+    }
+  }
+
+  const cardVariants = {
+    hidden: { 
+      opacity: 0, 
+      y: 50
+    },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { 
+        duration: 0.6,
+        ease: "easeOut"
+      }
+    },
+    hover: {
+      y: -8,
+      transition: {
+        duration: 0.3,
+        ease: "easeOut"
+      }
+    }
+  }
+
+  const PatternBackground = ({ pattern, color }) => {
+    const patterns = {
+      circles: (
+        <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0, opacity: 0.03 }}>
+          <pattern id="circles" width="60" height="60" patternUnits="userSpaceOnUse">
+            <circle cx="30" cy="30" r="3" fill={color} />
+            <circle cx="10" cy="10" r="2" fill={color} />
+            <circle cx="50" cy="20" r="2" fill={color} />
+          </pattern>
+          <rect width="100%" height="100%" fill="url(#circles)" />
+        </svg>
+      ),
+      grid: (
+        <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0, opacity: 0.03 }}>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke={color} strokeWidth="1"/>
+          </pattern>
+          <rect width="100%" height="100%" fill="url(#grid)" />
+        </svg>
+      ),
+      waves: (
+        <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0, opacity: 0.03 }}>
+          <pattern id="waves" width="80" height="40" patternUnits="userSpaceOnUse">
+            <path d="M0 20 Q20 10,40 20 T80 20" stroke={color} strokeWidth="1" fill="none"/>
+          </pattern>
+          <rect width="100%" height="100%" fill="url(#waves)" />
+        </svg>
+      ),
+      shields: (
+        <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0, opacity: 0.03 }}>
+          <pattern id="shields" width="50" height="50" patternUnits="userSpaceOnUse">
+            <path d="M25 5 L45 15 L45 35 L25 45 L5 35 L5 15 Z" stroke={color} strokeWidth="1" fill="none"/>
+          </pattern>
+          <rect width="100%" height="100%" fill="url(#shields)" />
+        </svg>
+      ),
+      dots: (
+        <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0, opacity: 0.03 }}>
+          <pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse">
+            <circle cx="10" cy="10" r="1.5" fill={color} />
+          </pattern>
+          <rect width="100%" height="100%" fill="url(#dots)" />
+        </svg>
+      ),
+      lines: (
+        <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0, opacity: 0.03 }}>
+          <pattern id="lines" width="30" height="30" patternUnits="userSpaceOnUse">
+            <path d="M0 30 L30 0" stroke={color} strokeWidth="1" fill="none"/>
+          </pattern>
+          <rect width="100%" height="100%" fill="url(#lines)" />
+        </svg>
+      )
+    }
+
+    return patterns[pattern] || patterns.circles
+  }
+
+  return (
+    <>
+      <style jsx>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        /* Mobile Responsive Styles for Features Section */
+        @media (max-width: 768px) {
+          /* Section padding */
+          section {
+            padding: 4rem 0 !important;
+          }
+
+          /* Container padding */
+          section > div:first-child {
+            padding: 0 1rem !important;
+          }
+
+          /* Header adjustments */
+          h2 {
+            font-size: 2.2rem !important;
+            line-height: 1.2 !important;
+            padding: 0 0.5rem;
+          }
+
+          /* Subtitle */
+          p {
+            font-size: 1.1rem !important;
+            padding: 0 1rem;
+            margin-bottom: 3rem !important;
+          }
+
+          /* Features grid - single column on mobile */
+          .features-grid {
+            grid-template-columns: 1fr !important;
+            gap: 1.5rem !important;
+          }
+
+          /* Feature cards */
+          .feature-card {
+            padding: 2rem 1.5rem !important;
+            margin: 0 auto;
+            max-width: 400px;
+            width: 100%;
+            border-radius: 16px !important;
+          }
+
+          /* Icon container */
+          .feature-icon {
+            width: 60px !important;
+            height: 60px !important;
+            border-radius: 14px !important;
+            font-size: 1.5rem !important;
+            margin-bottom: 1.2rem !important;
+          }
+
+          /* Feature title */
+          .feature-title {
+            font-size: 1.3rem !important;
+            margin-bottom: 0.8rem !important;
+          }
+
+          /* Feature description */
+          .feature-description {
+            font-size: 0.95rem !important;
+            margin-bottom: 1.5rem !important;
+            line-height: 1.5 !important;
+          }
+
+          /* Feature details list */
+          .feature-detail {
+            padding: 0.6rem 0.8rem !important;
+            font-size: 0.9rem !important;
+          }
+
+          .feature-detail span {
+            font-size: 0.9rem !important;
+          }
+
+          /* Floating action */
+          .floating-action {
+            margin-top: 1.5rem !important;
+            padding: 0.6rem !important;
+          }
+
+          /* Background elements - reduce on mobile */
+          .background-element {
+            display: none;
+          }
+        }
+
+        @media (max-width: 480px) {
+          /* Extra small devices */
+          section {
+            padding: 3rem 0 !important;
+          }
+
+          h2 {
+            font-size: 1.8rem !important;
+          }
+
+          p {
+            font-size: 1rem !important;
+            margin-bottom: 2.5rem !important;
+          }
+
+          .feature-card {
+            padding: 1.5rem 1.2rem !important;
+            border-radius: 14px !important;
+          }
+
+          .feature-icon {
+            width: 55px !important;
+            height: 55px !important;
+            font-size: 1.3rem !important;
+            margin-bottom: 1rem !important;
+          }
+
+          .feature-title {
+            font-size: 1.2rem !important;
+          }
+
+          .feature-description {
+            font-size: 0.9rem !important;
+          }
+
+          .feature-detail {
+            padding: 0.5rem 0.7rem !important;
+            font-size: 0.85rem !important;
+          }
+
+          .features-grid {
+            gap: 1.2rem !important;
+          }
+        }
+
+        /* Tablet responsive styles */
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .features-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 1.8rem !important;
+          }
+
+          .feature-card {
+            padding: 2rem 1.8rem !important;
+          }
+
+          h2 {
+            font-size: 2.8rem !important;
+          }
+
+          p {
+            font-size: 1.15rem !important;
+          }
+
+          /* Reduce background animation scale on tablet */
+          .background-element {
+            transform: scale(0.8);
+          }
+        }
+
+        /* Large desktop adjustments */
+        @media (min-width: 1440px) {
+          .features-grid {
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 2.5rem !important;
+          }
+
+          .feature-card {
+            padding: 3rem 2.5rem !important;
+          }
+        }
+
+        /* Touch device optimizations */
+        @media (max-width: 768px) {
+          /* Increase touch targets */
+          .feature-card,
+          .feature-detail {
+            min-height: 44px;
+          }
+
+          /* Simplify hover effects for touch */
+          .feature-card:hover {
+            transform: none !important;
+          }
+
+          /* Active state for touch feedback */
+          .feature-card:active {
+            transform: scale(0.98) !important;
+            background: rgba(255, 255, 255, 0.95) !important;
+          }
+
+          /* Reduce animations for performance */
+          .feature-card {
+            animation: none;
+          }
+        }
+
+        /* Improve readability on small screens */
+        @media (max-width: 768px) {
+          .feature-description {
+            line-height: 1.5 !important;
+          }
+
+          .feature-detail span {
+            line-height: 1.4;
+          }
+        }
+
+        /* Prevent horizontal scrolling */
+        @media (max-width: 768px) {
+          .features-grid {
+            width: 100%;
+            box-sizing: border-box;
+          }
+        }
+      `}</style>
+
+      <section
+        id="features"
+        style={{
+          padding: '6rem 0',
+          background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+          fontFamily: "'Inter', sans-serif",
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+      >
+        {/* Background Elements */}
+        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+          <motion.div
+            className="background-element"
+            animate={{
+              x: [0, 100, 0],
+              y: [0, -50, 0],
+            }}
+            transition={{
+              duration: 20,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+            style={{
+              position: 'absolute',
+              top: '10%',
+              right: '10%',
+              width: '300px',
+              height: '300px',
+              background: 'linear-gradient(45deg, rgba(59, 130, 246, 0.05), rgba(139, 92, 246, 0.05))',
+              borderRadius: '50%',
+              filter: 'blur(40px)'
+            }}
+          />
+          
+          <motion.div
+            className="background-element"
+            animate={{
+              x: [0, -80, 0],
+              y: [0, 60, 0],
+            }}
+            transition={{
+              duration: 25,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+            style={{
+              position: 'absolute',
+              bottom: '20%',
+              left: '5%',
+              width: '250px',
+              height: '250px',
+              background: 'linear-gradient(45deg, rgba(16, 185, 129, 0.05), rgba(59, 130, 246, 0.05))',
+              borderRadius: '50%',
+              filter: 'blur(30px)'
+            }}
+          />
+        </div>
+
+        <div style={{
+          maxWidth: '1200px',
+          margin: '0 auto',
+          padding: '0 2rem',
+          position: 'relative'
+        }}>
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            style={{
+              textAlign: 'center',
+              marginBottom: '4rem'
+            }}
+          >
+            <h2 style={{
+              fontSize: '3rem',
+              fontWeight: '800',
+              marginBottom: '1rem',
+              color: '#1a202c',
+              lineHeight: '1.1'
+            }}>
+              Advanced Domain
+              <span style={{
+                background: 'linear-gradient(45deg, #3B82F6, #8B5CF6)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                display: 'block',
+                marginTop: '0.5rem'
+              }}>
+                Intelligence Suite
+              </span>
+            </h2>
+            <p style={{
+              fontSize: '1.2rem',
+              color: '#64748b',
+              maxWidth: '600px',
+              margin: '0 auto',
+              lineHeight: '1.6',
+              fontWeight: '400'
+            }}>
+              Unlock powerful insights with our comprehensive toolkit designed for{' '}
+              <span style={{ color: '#3B82F6', fontWeight: '600' }}>developers, analysts, and businesses</span>
+            </p>
+          </motion.div>
+
+          {/* Features Grid */}
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+            className="features-grid"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+              gap: '2rem',
+              position: 'relative'
+            }}
+          >
+            {features.map((feature, index) => (
+              <motion.div
+                key={index}
+                variants={cardVariants}
+                whileHover="hover"
+                onHoverStart={() => setHoveredCard(index)}
+                onHoverEnd={() => setHoveredCard(null)}
+                className="feature-card"
+                style={{
+                  background: 'white',
+                  padding: '2.5rem',
+                  borderRadius: '20px',
+                  boxShadow: '0 10px 40px rgba(0,0,0,0.08)',
+                  border: `1px solid rgba(0,0,0,0.05)`,
+                  position: 'relative',
+                  overflow: 'hidden',
+                  cursor: 'pointer'
+                }}
+              >
+                {/* Pattern Background */}
+                <PatternBackground pattern={feature.pattern} color={feature.color} />
+
+                {/* Creative Accent Line */}
+                <motion.div
+                  animate={{ 
+                    width: hoveredCard === index ? '100%' : '60px',
+                    background: `linear-gradient(90deg, ${feature.color}, ${feature.color}80)`
+                  }}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    height: '4px',
+                    borderRadius: '2px'
+                  }}
+                />
+
+                <div style={{ position: 'relative', zIndex: 2 }}>
+                  {/* Icon Container */}
+                  <motion.div
+                    animate={{
+                      scale: hoveredCard === index ? 1.1 : 1,
+                      background: `linear-gradient(135deg, ${feature.gradient.replace('from-', '').replace('to-', '').replaceAll(' ', ', ')})`
+                    }}
+                    className="feature-icon"
+                    style={{
+                      width: '70px',
+                      height: '70px',
+                      borderRadius: '18px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '2rem',
+                      marginBottom: '1.5rem',
+                      boxShadow: `0 8px 25px ${feature.color}30`
+                    }}
+                  >
+                    {feature.icon}
+                  </motion.div>
+
+                  {/* Title */}
+                  <motion.h3
+                    animate={{ color: hoveredCard === index ? feature.color : '#1a202c' }}
+                    className="feature-title"
+                    style={{
+                      fontSize: '1.5rem',
+                      fontWeight: '700',
+                      marginBottom: '1rem',
+                      lineHeight: '1.2'
+                    }}
+                  >
+                    {feature.title}
+                  </motion.h3>
+
+                  {/* Description */}
+                  <motion.p
+                    className="feature-description"
+                    style={{
+                      fontSize: '1rem',
+                      color: '#64748b',
+                      lineHeight: '1.6',
+                      marginBottom: '2rem',
+                      fontWeight: '400'
+                    }}
+                  >
+                    {feature.description}
+                  </motion.p>
+
+                  {/* Features List */}
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.8rem'
+                  }}>
+                    {feature.details.map((detail, detailIndex) => (
+                      <motion.div
+                        key={detailIndex}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: detailIndex * 0.1 }}
+                        whileHover={{ 
+                          x: 5,
+                          background: `linear-gradient(90deg, ${feature.color}08, ${feature.color}15)`
+                        }}
+                        className="feature-detail"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.8rem',
+                          padding: '0.8rem 1rem',
+                          borderRadius: '10px',
+                          border: `1px solid ${feature.color}10`,
+                          background: 'rgba(255,255,255,0.8)',
+                          transition: 'all 0.3s ease'
+                        }}
+                      >
+                        <motion.div
+                          animate={{ 
+                            background: `linear-gradient(135deg, ${feature.gradient.replace('from-', '').replace('to-', '').replaceAll(' ', ', ')})`,
+                          }}
+                          style={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '6px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.8rem',
+                            color: 'white',
+                            fontWeight: 'bold',
+                            flexShrink: 0
+                          }}
+                        >
+                          ✓
+                        </motion.div>
+                        <span style={{
+                          color: '#374151',
+                          fontSize: '0.95rem',
+                          fontWeight: '500'
+                        }}>
+                          {detail}
+                        </span>
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  {/* Floating Action */}
+                  <motion.div
+                    animate={{ 
+                      opacity: hoveredCard === index ? 1 : 0,
+                      y: hoveredCard === index ? 0 : 10
+                    }}
+                    className="floating-action"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      marginTop: '2rem',
+                      padding: '0.8rem',
+                      background: `linear-gradient(90deg, ${feature.color}08, ${feature.color}15)`,
+                      borderRadius: '10px',
+                      border: `1px solid ${feature.color}20`
+                    }}
+                  >
+                    <motion.span
+                      style={{
+                        fontSize: '0.9rem',
+                        fontWeight: '600',
+                        color: feature.color
+                      }}
+                    >
+                      Learn more
+                    </motion.span>
+                    <motion.span
+                      animate={{ x: hoveredCard === index ? 5 : 0 }}
+                      style={{
+                        fontSize: '1rem',
+                        color: feature.color
+                      }}
+                    >
+                      →
+                    </motion.span>
+                  </motion.div>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+    </>
+  )
+}
+
+export default FeaturesSection
