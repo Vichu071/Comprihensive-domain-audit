@@ -41,7 +41,7 @@ function App() {
     const progressInterval = simulateProgress();
 
     try {
-      const response = await fetch(`http://localhost:8000/audit/${domain}`)
+      const response = await fetch(`${API_BASE_URL}/audit/${domain}`)
       
       if (!response.ok) {
         throw new Error(`Server error: ${response.status}`);

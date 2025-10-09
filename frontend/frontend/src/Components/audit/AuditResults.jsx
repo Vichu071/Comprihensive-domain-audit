@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { FiGlobe, FiMail, FiZap, FiStar, FiTrendingUp, FiShield, FiLayers, FiServer, FiCalendar, FiCheck, FiX, FiArrowLeft } from 'react-icons/fi';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const ProgressBar = ({ label, value, color = '#3b82f6' }) => {
   const numericValue = parseFloat(value) || 0;

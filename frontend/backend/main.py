@@ -24,7 +24,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("domain-audit")
 
-app = FastAPI(title="Domain Audit API", version="2.2")
+app = FastAPI(title="Domain Audit API", version="2.3")
 
 app.add_middleware(
     CORSMiddleware,
@@ -52,9 +52,13 @@ def safe_fetch(url: str, timeout: int = 10) -> str:
             "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         ),
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
     }
     try:
-        response = session.get(url, headers=headers, timeout=timeout, verify=False)
+        response = session.get(url, headers=headers, timeout=timeout, verify=False, allow_redirects=True)
         response.raise_for_status()
         return response.text
     except Exception as e:
@@ -149,7 +153,7 @@ def extract_emails(domain: str) -> List[str]:
     try:
         html = safe_fetch(f"https://{domain}")
         emails = re.findall(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", html)
-        return emails[:5]
+        return list(set(emails))[:5]  # Remove duplicates and limit to 5
     except:
         return []
 
@@ -161,66 +165,116 @@ def detect_tech_stack(domain: str) -> Dict[str, List[str]]:
     except:
         return {}
 
-# ---------------------- Improved WordPress Detection ----------------------
+# ---------------------- WordPress Detection ----------------------
 
 def detect_wordpress(domain: str) -> Dict[str, Any]:
     wp_info = {"Is WordPress": "No", "Version": "Not Detected", "Theme": "Not Detected"}
-
+    
     try:
-        html = safe_fetch(f"https://{domain}")
+        # Try multiple URLs to detect WordPress
+        urls_to_try = [
+            f"https://{domain}",
+            f"https://{domain}/wp-admin/",
+            f"https://{domain}/wp-login.php",
+            f"https://{domain}/feed/",
+        ]
+        
+        html = ""
+        for url in urls_to_try:
+            html = safe_fetch(url)
+            if html:
+                break
+        
         if not html:
             return wp_info
 
+        # Enhanced WordPress signatures
         wp_signatures = [
-            "wp-content", "wp-includes", "wp-json", "wordpress", "wp-admin", "wp-embed", "wp-login.php"
+            "wp-content", "wp-includes", "wp-json", "wordpress", "wp-admin", 
+            "wp-embed", "xmlrpc.php", "wp-config", "wp-mail.php", "wp-load.php"
         ]
+        
         wp_count = sum(1 for sig in wp_signatures if sig in html.lower())
+        
+        # Check for WordPress meta tags
+        soup = BeautifulSoup(html, "html.parser")
+        meta_generator = soup.find("meta", attrs={"name": "generator"})
+        if meta_generator and "wordpress" in meta_generator.get("content", "").lower():
+            wp_count += 3  # Strong indicator
+            
+        # Check for WordPress REST API
+        if 'wp-json' in html.lower() or 'rest_route' in html.lower():
+            wp_count += 2
+            
+        # Check for common WordPress classes
+        wp_classes = ['wp-block', 'menu-item', 'widget_', 'sidebar-']
+        for wp_class in wp_classes:
+            if wp_class in html:
+                wp_count += 1
 
-        # Extra check
-        readme_html = safe_fetch(f"https://{domain}/readme.html")
-        wp_json = safe_fetch(f"https://{domain}/wp-json/")
-
-        if wp_count >= 2 or readme_html or wp_json:
+        if wp_count >= 2:
             wp_info["Is WordPress"] = "Yes"
 
-            # Detect Version
+            # Enhanced version detection
             version_patterns = [
                 r"wordpress[^>]*?([0-9]+\.[0-9]+\.[0-9]+)",
                 r"wp-embed-min\.js\?ver=([0-9]+\.[0-9]+\.[0-9]+)",
                 r'content="wordpress ([0-9]+\.[0-9]+\.[0-9]+)"',
+                r"ver=([0-9]+\.[0-9]+\.[0-9]+)[^>]*wp-includes",
+                r"wp-includes/js/wp-embed\.js\?ver=([0-9]+\.[0-9]+\.[0-9]+)",
             ]
+
             for pattern in version_patterns:
                 match = re.search(pattern, html, re.IGNORECASE)
                 if match:
                     wp_info["Version"] = match.group(1)
                     break
 
-            # Meta generator check
-            soup = BeautifulSoup(html, "html.parser")
-            generator = soup.find("meta", attrs={"name": "generator"})
-            if generator and "wordpress" in generator.get("content", "").lower():
-                ver_match = re.search(r"([0-9]+\.[0-9]+(?:\.[0-9]+)?)", generator.get("content", ""))
+            # Check meta generator for version
+            if wp_info["Version"] == "Not Detected" and meta_generator:
+                content = meta_generator.get("content", "")
+                ver_match = re.search(r"([0-9]+\.[0-9]+(?:\.[0-9]+)?)", content)
                 if ver_match:
                     wp_info["Version"] = ver_match.group(1)
 
-            # Detect theme
+            # Enhanced theme detection
             theme_patterns = [
-                r"/wp-content/themes/([^/]+)/",
-                r"themes/([^/]+)/style\.css",
-                r'theme-name["\']*:["\']*([^"\'\)]+)',
+                r"/wp-content/themes/([^/\"']+)/",
+                r"themes/([^/\"']+)/style\.css",
+                r'theme-?name["\']*:["\']*([^"\'\)\s]+)',
+                r"template[\"']?:\s*[\"']([^\"']+)[\"']",
+                r"stylesheet[\"']?:\s*[\"']([^\"']+)[\"']",
             ]
+
+            theme_candidates = set()
             for pattern in theme_patterns:
-                theme_match = re.search(pattern, html, re.IGNORECASE)
-                if theme_match:
-                    wp_info["Theme"] = re.sub(r'[\'"\)]', "", theme_match.group(1)).title()
-                    break
+                theme_matches = re.findall(pattern, html, re.IGNORECASE)
+                for theme_match in theme_matches:
+                    if len(theme_match) > 2 and not any(x in theme_match.lower() for x in ['http', 'www', '.com']):
+                        theme_name = re.sub(r'[^a-zA-Z0-9\-_]', '', theme_match)
+                        if theme_name:
+                            theme_candidates.add(theme_name.title())
+            
+            if theme_candidates:
+                # Prefer longer theme names (more specific)
+                wp_info["Theme"] = max(theme_candidates, key=len)
+
+            # Try to detect theme from stylesheet links
+            if wp_info["Theme"] == "Not Detected":
+                for link in soup.find_all("link", rel="stylesheet"):
+                    href = link.get("href", "")
+                    theme_match = re.search(r"/themes/([^/]+)/", href)
+                    if theme_match:
+                        theme_name = theme_match.group(1)
+                        wp_info["Theme"] = theme_name.title()
+                        break
 
     except Exception as e:
         logger.error(f"WordPress detection error: {str(e)}")
 
     return wp_info
 
-# ---------------------- Improved Ads Detection ----------------------
+# ---------------------- Ads Detection ----------------------
 
 def detect_ads(domain: str) -> List[str]:
     try:
@@ -229,7 +283,9 @@ def detect_ads(domain: str) -> List[str]:
             return ["Unable to scan website"]
 
         found_ads = set()
+        soup = BeautifulSoup(html, "html.parser")
 
+        # Enhanced ad network patterns
         ad_networks = {
             "Google Ads": [
                 r"googlesyndication\.com",
@@ -237,47 +293,131 @@ def detect_ads(domain: str) -> List[str]:
                 r"googleadservices\.com",
                 r"adsbygoogle",
                 r"pagead2\.googlesyndication",
+                r"googleads\.g\.doubleclick\.net",
             ],
             "Google Analytics": [
                 r"google-analytics\.com",
-                r"ga\([\'\"]",
-                r"gtag\([\'\"]",
                 r"googletagmanager\.com/gtag/js",
+                r"ga\([\"']",
+                r"gtag\([\"']",
             ],
             "Google Tag Manager": [
                 r"googletagmanager\.com/gtm\.js",
+                r"googletagmanager\.com/gtag/js",
                 r"googletagmanager\.com/ns\.html",
             ],
             "Facebook Pixel": [
                 r"connect\.facebook\.net",
-                r"fbq\([\'\"]",
+                r"fbq\([\"']",
                 r"facebook\.com/tr\?",
                 r"facebook\.com/tr/",
             ],
-            "Microsoft Advertising": [r"bat\.bing\.com", r"bing\.com/ads"],
-            "Amazon Ads": [r"amazon-adsystem\.com", r"assoc-amazon\.com"],
-            "LinkedIn Insight": [r"linkedin\.com/li\.js", r"linkedin\.com/px"],
-            "Twitter Ads": [r"ads-twitter\.com", r"analytics\.twitter\.com"],
-            "Pinterest Tag": [r"ct\.pinterest\.com", r"pinterest\.com/tag"],
-            "TikTok Pixel": [r"tiktok\.com/i18n/pixel", r"analytics\.tiktok\.com"],
+            "Microsoft Advertising": [
+                r"bat\.bing\.com",
+                r"bing\.com/ads",
+                r"c\.bing\.com",
+            ],
+            "Amazon Ads": [
+                r"amazon-adsystem\.com",
+                r"assoc-amazon\.com",
+            ],
+            "LinkedIn Insight": [
+                r"linkedin\.com/li\.js",
+                r"linkedin\.com/px\.",
+                r"snap\.licdn\.com/li\.lm",
+            ],
+            "Twitter Ads": [
+                r"ads-twitter\.com",
+                r"analytics\.twitter\.com",
+                r"platform\.twitter\.com/widgets",
+            ],
+            "Pinterest Tag": [
+                r"ct\.pinterest\.com",
+                r"pinterest\.com/tag",
+            ],
+            "TikTok Pixel": [
+                r"tiktok\.com/i18n/pixel",
+                r"analytics\.tiktok\.com",
+            ],
+            "AdSense": [
+                r"pagead2\.googlesyndication\.com",
+                r"googleads\.g\.doubleclick\.net",
+            ],
+            "Media.net": [
+                r"contextual\.media\.net",
+                r"media\.net",
+            ],
+            "Propeller Ads": [
+                r"propellerads\.com",
+                r"go\.propellerads\.com",
+            ],
+            "Revcontent": [
+                r"revcontent\.com",
+                r"trends\.revcontent\.com",
+            ],
+            "Taboola": [
+                r"taboola\.com",
+                r"cdn\.taboola\.com",
+            ],
+            "Outbrain": [
+                r"outbrain\.com",
+                r"widgets\.outbrain\.com",
+            ],
         }
 
-        soup = BeautifulSoup(html, "html.parser")
+        # Check HTML content
+        for network, patterns in ad_networks.items():
+            for pattern in patterns:
+                if re.search(pattern, html, re.IGNORECASE):
+                    found_ads.add(network)
+                    break
 
-        # Check external scripts
+        # Check script tags
         for script in soup.find_all("script", src=True):
             src = script["src"]
             for network, patterns in ad_networks.items():
-                if any(re.search(pattern, src, re.IGNORECASE) for pattern in patterns):
-                    found_ads.add(network)
+                for pattern in patterns:
+                    if re.search(pattern, src, re.IGNORECASE):
+                        found_ads.add(network)
+                        break
 
-        # Check inline scripts
-        for network, patterns in ad_networks.items():
-            if any(re.search(pattern, html, re.IGNORECASE) for pattern in patterns):
-                found_ads.add(network)
+        # Check iframe tags
+        for iframe in soup.find_all("iframe", src=True):
+            src = iframe["src"]
+            for network, patterns in ad_networks.items():
+                for pattern in patterns:
+                    if re.search(pattern, src, re.IGNORECASE):
+                        found_ads.add(network)
+                        break
+
+        # Check for common ad-related class names and IDs
+        ad_indicators = [
+            'ad-container', 'ad-wrapper', 'ad-unit', 'adsbygoogle', 
+            'banner-ad', 'ad_banner', 'advertisement', 'advert',
+            'doubleclick', 'google_ads', 'ad-slot', 'ad-placeholder'
+        ]
+        
+        for element in soup.find_all(True, class_=True):
+            classes = element.get('class', [])
+            for ad_class in ad_indicators:
+                if any(ad_class in str(cls).lower() for cls in classes):
+                    # Try to determine which ad network
+                    html_str = str(element)
+                    for network, patterns in ad_networks.items():
+                        for pattern in patterns:
+                            if re.search(pattern, html_str, re.IGNORECASE):
+                                found_ads.add(network)
+                                break
+
+        # Check for data attributes commonly used by ads
+        for element in soup.find_all(attrs={"data-ad-client": True}):
+            found_ads.add("Google Ads (AdSense)")
+
+        for element in soup.find_all(attrs={"data-ad-slot": True}):
+            found_ads.add("Google Ads (AdSense)")
 
         return list(found_ads) if found_ads else ["No advertising networks detected"]
-
+        
     except Exception as e:
         logger.error(f"Ad detection failed: {str(e)}")
         return ["Ad detection failed"]
@@ -358,7 +498,7 @@ def analyze_performance(domain: str) -> Dict[str, Any]:
 
 @app.get("/")
 def home():
-    return {"message": "Domain Audit API", "version": "2.2"}
+    return {"message": "Domain Audit API", "version": "2.3"}
 
 @app.get("/audit/{domain}")
 def audit_domain(domain: str):
@@ -366,6 +506,8 @@ def audit_domain(domain: str):
     if not domain:
         return JSONResponse({"error": "Invalid domain"}, status_code=400)
 
+    logger.info(f"Starting audit for domain: {domain}")
+    
     mx_records = get_mx_records(domain)
 
     results = {
@@ -385,6 +527,7 @@ def audit_domain(domain: str):
         "Audit Date": datetime.now().strftime("%B %d, %Y at %I:%M %p"),
     }
 
+    logger.info(f"Completed audit for domain: {domain}")
     return JSONResponse(results)
 
 @app.get("/health")

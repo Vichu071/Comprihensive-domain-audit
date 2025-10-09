@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import path from "path";
 
 export default defineConfig({
   plugins: [react()],
@@ -11,14 +12,6 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
       }
-    }
-  },
-  optimizeDeps: {
-    include: ['framer-motion']
-  },
-  build: {
-    rollupOptions: {
-      external: [], // Make sure framer-motion is not in this array
     }
   }
 })

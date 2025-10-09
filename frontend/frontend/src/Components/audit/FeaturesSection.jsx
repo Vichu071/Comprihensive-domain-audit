@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { motion } from 'framer-motion'
 
 const FeaturesSection = () => {
   const [hoveredCard, setHoveredCard] = useState(null)
