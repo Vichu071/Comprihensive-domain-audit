@@ -17,6 +17,7 @@ export default defineConfig({
     include: ['framer-motion'],
   },
   build: {
+    outDir: 'build', // <-- change from default 'dist'
     commonjsOptions: {
       include: [/node_modules/, /framer-motion/],
     },
