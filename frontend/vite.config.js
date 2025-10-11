@@ -14,11 +14,14 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
-    include: ['framer-motion']
+    include: ['framer-motion'],
   },
   build: {
+    commonjsOptions: {
+      include: [/node_modules/, /framer-motion/],
+    },
     rollupOptions: {
-      external: [], // Make sure framer-motion is not in this array
+      external: [], // ensure framer-motion is bundled
     }
   }
 })

@@ -1,7 +1,12 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 
 const FeaturesSection = () => {
   const [hoveredCard, setHoveredCard] = useState(null)
+  const [isVisible, setIsVisible] = useState(false)
+
+  useEffect(() => {
+    setIsVisible(true)
+  }, [])
 
   const features = [
     {
@@ -59,39 +64,6 @@ const FeaturesSection = () => {
       pattern: "lines"
     }
   ]
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { 
-        staggerChildren: 0.15,
-        duration: 0.8
-      }
-    }
-  }
-
-  const cardVariants = {
-    hidden: { 
-      opacity: 0, 
-      y: 50
-    },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { 
-        duration: 0.6,
-        ease: "easeOut"
-      }
-    },
-    hover: {
-      y: -8,
-      transition: {
-        duration: 0.3,
-        ease: "easeOut"
-      }
-    }
-  }
 
   const PatternBackground = ({ pattern, color }) => {
     const patterns = {
@@ -154,6 +126,43 @@ const FeaturesSection = () => {
     <>
       <style jsx>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        .feature-card {
+          transition: all 0.3s ease;
+          cursor: pointer;
+        }
+
+        .feature-card:hover {
+          transform: translateY(-8px);
+        }
+
+        .feature-icon {
+          transition: all 0.3s ease;
+        }
+
+        .feature-card:hover .feature-icon {
+          transform: scale(1.1);
+        }
+
+        .fade-in-up {
+          opacity: 0;
+          transform: translateY(30px);
+          animation: fadeInUp 0.8s ease forwards;
+        }
+
+        @keyframes fadeInUp {
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .stagger-animation > *:nth-child(1) { animation-delay: 0.1s; }
+        .stagger-animation > *:nth-child(2) { animation-delay: 0.2s; }
+        .stagger-animation > *:nth-child(3) { animation-delay: 0.3s; }
+        .stagger-animation > *:nth-child(4) { animation-delay: 0.4s; }
+        .stagger-animation > *:nth-child(5) { animation-delay: 0.5s; }
+        .stagger-animation > *:nth-child(6) { animation-delay: 0.6s; }
 
         /* Mobile Responsive Styles for Features Section */
         @media (max-width: 768px) {
@@ -379,17 +388,8 @@ const FeaturesSection = () => {
       >
         {/* Background Elements */}
         <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
-          <motion.div
+          <div
             className="background-element"
-            animate={{
-              x: [0, 100, 0],
-              y: [0, -50, 0],
-            }}
-            transition={{
-              duration: 20,
-              repeat: Infinity,
-              ease: "linear"
-            }}
             style={{
               position: 'absolute',
               top: '10%',
@@ -402,17 +402,8 @@ const FeaturesSection = () => {
             }}
           />
           
-          <motion.div
+          <div
             className="background-element"
-            animate={{
-              x: [0, -80, 0],
-              y: [0, 60, 0],
-            }}
-            transition={{
-              duration: 25,
-              repeat: Infinity,
-              ease: "linear"
-            }}
             style={{
               position: 'absolute',
               bottom: '20%',
@@ -433,11 +424,8 @@ const FeaturesSection = () => {
           position: 'relative'
         }}>
           {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
+          <div
+            className="fade-in-up"
             style={{
               textAlign: 'center',
               marginBottom: '4rem'
@@ -472,15 +460,11 @@ const FeaturesSection = () => {
               Unlock powerful insights with our comprehensive toolkit designed for{' '}
               <span style={{ color: '#3B82F6', fontWeight: '600' }}>developers, analysts, and businesses</span>
             </p>
-          </motion.div>
+          </div>
 
           {/* Features Grid */}
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-50px" }}
-            className="features-grid"
+          <div
+            className="features-grid stagger-animation"
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
@@ -489,13 +473,11 @@ const FeaturesSection = () => {
             }}
           >
             {features.map((feature, index) => (
-              <motion.div
+              <div
                 key={index}
-                variants={cardVariants}
-                whileHover="hover"
-                onHoverStart={() => setHoveredCard(index)}
-                onHoverEnd={() => setHoveredCard(null)}
-                className="feature-card"
+                className="feature-card fade-in-up"
+                onMouseEnter={() => setHoveredCard(index)}
+                onMouseLeave={() => setHoveredCard(null)}
                 style={{
                   background: 'white',
                   padding: '2.5rem',
@@ -511,27 +493,22 @@ const FeaturesSection = () => {
                 <PatternBackground pattern={feature.pattern} color={feature.color} />
 
                 {/* Creative Accent Line */}
-                <motion.div
-                  animate={{ 
-                    width: hoveredCard === index ? '100%' : '60px',
-                    background: `linear-gradient(90deg, ${feature.color}, ${feature.color}80)`
-                  }}
+                <div
                   style={{
                     position: 'absolute',
                     top: 0,
                     left: 0,
                     height: '4px',
-                    borderRadius: '2px'
+                    borderRadius: '2px',
+                    width: hoveredCard === index ? '100%' : '60px',
+                    background: `linear-gradient(90deg, ${feature.color}, ${feature.color}80)`,
+                    transition: 'width 0.3s ease'
                   }}
                 />
 
                 <div style={{ position: 'relative', zIndex: 2 }}>
                   {/* Icon Container */}
-                  <motion.div
-                    animate={{
-                      scale: hoveredCard === index ? 1.1 : 1,
-                      background: `linear-gradient(135deg, ${feature.gradient.replace('from-', '').replace('to-', '').replaceAll(' ', ', ')})`
-                    }}
+                  <div
                     className="feature-icon"
                     style={{
                       width: '70px',
@@ -542,28 +519,30 @@ const FeaturesSection = () => {
                       justifyContent: 'center',
                       fontSize: '2rem',
                       marginBottom: '1.5rem',
-                      boxShadow: `0 8px 25px ${feature.color}30`
+                      boxShadow: `0 8px 25px ${feature.color}30`,
+                      background: `linear-gradient(135deg, ${feature.color}, ${feature.color}80)`
                     }}
                   >
                     {feature.icon}
-                  </motion.div>
+                  </div>
 
                   {/* Title */}
-                  <motion.h3
-                    animate={{ color: hoveredCard === index ? feature.color : '#1a202c' }}
+                  <h3
                     className="feature-title"
                     style={{
                       fontSize: '1.5rem',
                       fontWeight: '700',
                       marginBottom: '1rem',
-                      lineHeight: '1.2'
+                      lineHeight: '1.2',
+                      color: hoveredCard === index ? feature.color : '#1a202c',
+                      transition: 'color 0.3s ease'
                     }}
                   >
                     {feature.title}
-                  </motion.h3>
+                  </h3>
 
                   {/* Description */}
-                  <motion.p
+                  <p
                     className="feature-description"
                     style={{
                       fontSize: '1rem',
@@ -574,7 +553,7 @@ const FeaturesSection = () => {
                     }}
                   >
                     {feature.description}
-                  </motion.p>
+                  </p>
 
                   {/* Features List */}
                   <div style={{
@@ -583,15 +562,8 @@ const FeaturesSection = () => {
                     gap: '0.8rem'
                   }}>
                     {feature.details.map((detail, detailIndex) => (
-                      <motion.div
+                      <div
                         key={detailIndex}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: detailIndex * 0.1 }}
-                        whileHover={{ 
-                          x: 5,
-                          background: `linear-gradient(90deg, ${feature.color}08, ${feature.color}15)`
-                        }}
                         className="feature-detail"
                         style={{
                           display: 'flex',
@@ -604,10 +576,7 @@ const FeaturesSection = () => {
                           transition: 'all 0.3s ease'
                         }}
                       >
-                        <motion.div
-                          animate={{ 
-                            background: `linear-gradient(135deg, ${feature.gradient.replace('from-', '').replace('to-', '').replaceAll(' ', ', ')})`,
-                          }}
+                        <div
                           style={{
                             width: '24px',
                             height: '24px',
@@ -618,11 +587,12 @@ const FeaturesSection = () => {
                             fontSize: '0.8rem',
                             color: 'white',
                             fontWeight: 'bold',
-                            flexShrink: 0
+                            flexShrink: 0,
+                            background: `linear-gradient(135deg, ${feature.color}, ${feature.color}80)`
                           }}
                         >
                           ✓
-                        </motion.div>
+                        </div>
                         <span style={{
                           color: '#374151',
                           fontSize: '0.95rem',
@@ -630,16 +600,12 @@ const FeaturesSection = () => {
                         }}>
                           {detail}
                         </span>
-                      </motion.div>
+                      </div>
                     ))}
                   </div>
 
                   {/* Floating Action */}
-                  <motion.div
-                    animate={{ 
-                      opacity: hoveredCard === index ? 1 : 0,
-                      y: hoveredCard === index ? 0 : 10
-                    }}
+                  <div
                     className="floating-action"
                     style={{
                       display: 'flex',
@@ -649,10 +615,13 @@ const FeaturesSection = () => {
                       padding: '0.8rem',
                       background: `linear-gradient(90deg, ${feature.color}08, ${feature.color}15)`,
                       borderRadius: '10px',
-                      border: `1px solid ${feature.color}20`
+                      border: `1px solid ${feature.color}20`,
+                      opacity: hoveredCard === index ? 1 : 0,
+                      transform: `translateY(${hoveredCard === index ? 0 : 10}px)`,
+                      transition: 'all 0.3s ease'
                     }}
                   >
-                    <motion.span
+                    <span
                       style={{
                         fontSize: '0.9rem',
                         fontWeight: '600',
@@ -660,21 +629,22 @@ const FeaturesSection = () => {
                       }}
                     >
                       Learn more
-                    </motion.span>
-                    <motion.span
-                      animate={{ x: hoveredCard === index ? 5 : 0 }}
+                    </span>
+                    <span
                       style={{
                         fontSize: '1rem',
-                        color: feature.color
+                        color: feature.color,
+                        transform: hoveredCard === index ? 'translateX(5px)' : 'translateX(0)',
+                        transition: 'transform 0.3s ease'
                       }}
                     >
                       →
-                    </motion.span>
-                  </motion.div>
+                    </span>
+                  </div>
                 </div>
-              </motion.div>
+              </div>
             ))}
-          </motion.div>
+          </div>
         </div>
       </section>
     </>

@@ -7,41 +7,62 @@ const HeroSection = ({ onAudit, loading }) => {
 
   useEffect(() => {
     setIsVisible(true)
+    
+    // Mouse move effect for interactive background
     const handleMouseMove = (e) => {
       const { clientX, clientY } = e
       const x = (clientX / window.innerWidth) * 100
       const y = (clientY / window.innerHeight) * 100
       setGlowPosition({ x, y })
     }
+
     window.addEventListener('mousemove', handleMouseMove)
     return () => window.removeEventListener('mousemove', handleMouseMove)
   }, [])
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (domain.trim()) onAudit(domain.trim())
+    if (domain.trim()) {
+      onAudit(domain.trim())
+    }
   }
 
   return (
     <>
       <style jsx>{`
-        /* ---------- Animations ---------- */
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
           50% { transform: translateY(-10px); }
         }
+        
         @keyframes glow {
           0%, 100% { box-shadow: 0 0 20px rgba(138, 43, 226, 0.3); }
           50% { box-shadow: 0 0 30px rgba(138, 43, 226, 0.6); }
         }
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
+        
+        @keyframes slideIn {
+          from { 
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to { 
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
-
-        .float-animation { animation: float 3s ease-in-out infinite; }
-        .glow-animation { animation: glow 2s ease-in-out infinite; }
-
+        
+        .float-animation {
+          animation: float 3s ease-in-out infinite;
+        }
+        
+        .glow-animation {
+          animation: glow 2s ease-in-out infinite;
+        }
+        
+        .slide-in {
+          animation: slideIn 0.8s ease-out forwards;
+        }
+        
         .loading {
           width: 20px;
           height: 20px;
@@ -50,87 +71,25 @@ const HeroSection = ({ onAudit, loading }) => {
           border-radius: 50%;
           animation: spin 1s linear infinite;
         }
-
+        
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
         .feature-card {
           transition: all 0.3s ease;
           cursor: pointer;
         }
+        
         .feature-card:hover {
           transform: translateY(-5px) scale(1.05);
           background: rgba(138, 43, 226, 0.1);
         }
-
+        
         .input-glow:focus {
           box-shadow: 0 0 20px rgba(138, 43, 226, 0.5);
           border-color: #8a2be2;
-        }
-
-        /* ---------- Responsive Design ---------- */
-        @media (max-width: 1024px) {
-          h1 {
-            font-size: 2.8rem !important;
-          }
-          p {
-            font-size: 1.1rem !important;
-          }
-          form {
-            max-width: 420px !important;
-          }
-        }
-
-        @media (max-width: 768px) {
-          section {
-            padding: 4rem 1.5rem !important;
-            min-height: 100vh !important;
-          }
-
-          h1 {
-            font-size: 2.2rem !important;
-            line-height: 1.3 !important;
-          }
-
-          p {
-            font-size: 1rem !important;
-            margin-bottom: 2rem !important;
-          }
-
-          form {
-            flex-direction: column !important;
-            gap: 1rem !important;
-          }
-
-          input {
-            width: 100% !important;
-            padding: 0.9rem !important;
-            font-size: 1rem !important;
-          }
-
-          button {
-            width: 100% !important;
-            padding: 0.9rem !important;
-            font-size: 1rem !important;
-          }
-
-          .feature-card {
-            min-width: 120px !important;
-            flex: 1 1 calc(50% - 1rem) !important;
-          }
-        }
-
-        @media (max-width: 480px) {
-          h1 {
-            font-size: 1.8rem !important;
-          }
-          p {
-            font-size: 0.95rem !important;
-          }
-          form {
-            width: 100% !important;
-          }
-          .feature-card {
-            flex: 1 1 100% !important;
-            min-width: auto !important;
-          }
         }
       `}</style>
 
@@ -145,14 +104,17 @@ const HeroSection = ({ onAudit, loading }) => {
         display: 'flex',
         alignItems: 'center'
       }}>
-        {/* Background glow */}
+        {/* Animated Background Elements */}
         <div style={{
           position: 'absolute',
-          inset: 0,
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
           background: `radial-gradient(circle at ${glowPosition.x}% ${glowPosition.y}%, rgba(138, 43, 226, 0.1) 0%, transparent 50%)`,
           transition: 'all 0.3s ease-out'
         }} />
-
+        
         {/* Floating particles */}
         <div className="float-animation" style={{
           position: 'absolute',
@@ -175,14 +137,21 @@ const HeroSection = ({ onAudit, loading }) => {
           boxShadow: '0 0 15px #8a2be2',
           animationDelay: '1.5s'
         }} />
+        <div className="float-animation" style={{
+          position: 'absolute',
+          bottom: '30%',
+          left: '20%',
+          width: '3px',
+          height: '3px',
+          background: '#8a2be2',
+          borderRadius: '50%',
+          boxShadow: '0 0 8px #8a2be2',
+          animationDelay: '2.5s'
+        }} />
 
-        <div style={{
+        <div className="container" style={{
           position: 'relative',
           zIndex: 2,
-          width: '100%',
-          maxWidth: '1200px',
-          margin: '0 auto',
-          padding: '0 1rem',
           opacity: isVisible ? 1 : 0,
           transform: isVisible ? 'translateY(0)' : 'translateY(30px)',
           transition: 'all 0.8s ease-out'
@@ -194,30 +163,37 @@ const HeroSection = ({ onAudit, loading }) => {
             lineHeight: '1.2',
             background: 'linear-gradient(45deg, #ffffff, #8a2be2)',
             WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent'
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            opacity: isVisible ? 1 : 0,
+            transform: isVisible ? 'translateY(0)' : 'translateY(30px)',
+            transition: 'all 0.8s ease-out 0.2s'
           }}>
             Complete Domain Analysis Tool
           </h1>
-
+          
           <p style={{
             fontSize: '1.25rem',
             marginBottom: '3rem',
             maxWidth: '600px',
             margin: '0 auto 3rem',
-            opacity: 0.9,
-            lineHeight: '1.6'
+            opacity: isVisible ? 0.9 : 0,
+            lineHeight: '1.6',
+            transform: isVisible ? 'translateY(0)' : 'translateY(30px)',
+            transition: 'all 0.8s ease-out 0.4s'
           }}>
             Get comprehensive insights into any domain - WHOIS data, technology stack, 
             email configuration, security headers, and performance metrics.
           </p>
-
+          
           <form onSubmit={handleSubmit} style={{
             maxWidth: '500px',
             margin: '0 auto',
             display: 'flex',
             gap: '0.5rem',
-            justifyContent: 'center',
-            alignItems: 'center'
+            opacity: isVisible ? 1 : 0,
+            transform: isVisible ? 'translateY(0)' : 'translateY(30px)',
+            transition: 'all 0.8s ease-out 0.6s'
           }}>
             <input
               type="text"
@@ -251,7 +227,20 @@ const HeroSection = ({ onAudit, loading }) => {
                 color: 'white',
                 fontWeight: 'bold',
                 cursor: loading ? 'not-allowed' : 'pointer',
-                transition: 'all 0.3s ease'
+                transition: 'all 0.3s ease',
+                opacity: loading ? 0.7 : 1
+              }}
+              onMouseEnter={(e) => {
+                if (!loading && domain.trim()) {
+                  e.target.style.transform = 'scale(1.05)'
+                  e.target.style.background = 'linear-gradient(45deg, #9b30ff, #7a1fcc)'
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!loading && domain.trim()) {
+                  e.target.style.transform = 'scale(1)'
+                  e.target.style.background = 'linear-gradient(45deg, #8a2be2, #6a0dad)'
+                }
               }}
             >
               {loading ? (
@@ -265,13 +254,15 @@ const HeroSection = ({ onAudit, loading }) => {
             </button>
           </form>
 
-          {/* Features */}
           <div style={{
             marginTop: '4rem',
             display: 'flex',
             justifyContent: 'center',
             gap: '2rem',
-            flexWrap: 'wrap'
+            flexWrap: 'wrap',
+            opacity: isVisible ? 1 : 0,
+            transform: isVisible ? 'translateY(0)' : 'translateY(30px)',
+            transition: 'all 0.8s ease-out 0.8s'
           }}>
             {[
               { title: 'WHOIS', desc: 'Domain Info' },
@@ -288,7 +279,8 @@ const HeroSection = ({ onAudit, loading }) => {
                   borderRadius: '12px',
                   background: 'rgba(138, 43, 226, 0.05)',
                   border: '1px solid rgba(138, 43, 226, 0.2)',
-                  minWidth: '140px'
+                  minWidth: '140px',
+                  animationDelay: `${1 + index * 0.1}s`
                 }}
               >
                 <div style={{ 
@@ -296,11 +288,15 @@ const HeroSection = ({ onAudit, loading }) => {
                   fontWeight: 'bold',
                   background: 'linear-gradient(45deg, #8a2be2, #ffffff)',
                   WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent'
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text'
                 }}>
                   {feature.title}
                 </div>
-                <div style={{ opacity: 0.8, marginTop: '0.5rem' }}>
+                <div style={{ 
+                  opacity: 0.8,
+                  marginTop: '0.5rem'
+                }}>
                   {feature.desc}
                 </div>
               </div>

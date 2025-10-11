@@ -1,4 +1,5 @@
 import React from 'react'
+import { motion } from 'framer-motion'
 import { FiGithub, FiTwitter, FiLinkedin, FiMail, FiArrowUp } from 'react-icons/fi'
 
 const Footer = () => {
@@ -73,217 +74,6 @@ const Footer = () => {
         .floating-emoji {
           animation: float 3s ease-in-out infinite;
         }
-
-        /* Mobile Responsive Styles */
-        @media (max-width: 768px) {
-          /* Footer padding */
-          footer {
-            padding: 2rem 0 1.5rem !important;
-          }
-
-          /* Container padding */
-          .container {
-            padding: 0 1rem !important;
-          }
-
-          /* Grid layout - single column on mobile */
-          .footer-grid {
-            grid-template-columns: 1fr !important;
-            gap: 2rem !important;
-            text-align: center;
-          }
-
-          /* Brand section */
-          .brand-section {
-            text-align: center !important;
-            margin: 0 auto;
-          }
-
-          .brand-section p {
-            margin: 1rem auto !important;
-            max-width: 100% !important;
-          }
-
-          /* Social links */
-          .social-links {
-            justify-content: center !important;
-            margin-top: 1rem;
-          }
-
-          /* Section headings */
-          .section-heading {
-            font-size: 1.1rem !important;
-            margin-bottom: 1rem !important;
-            text-align: center;
-          }
-
-          /* Links and features columns */
-          .links-column,
-          .features-column,
-          .contact-column {
-            text-align: center;
-          }
-
-          .links-column div,
-          .features-column div {
-            align-items: center !important;
-          }
-
-          /* Contact info */
-          .contact-info {
-            align-items: center !important;
-            text-align: center;
-          }
-
-          /* Bottom bar */
-          .bottom-bar {
-            flex-direction: column !important;
-            gap: 1rem !important;
-            text-align: center;
-          }
-
-          /* Legal links */
-          .legal-links {
-            justify-content: center !important;
-            gap: 1rem !important;
-          }
-
-          /* Scroll to top button */
-          .scroll-top {
-            margin-top: 0.5rem;
-          }
-
-          /* Background elements - reduce on mobile */
-          .background-element {
-            display: none;
-          }
-        }
-
-        @media (max-width: 480px) {
-          /* Extra small devices */
-          footer {
-            padding: 1.5rem 0 1rem !important;
-          }
-
-          .container {
-            padding: 0 0.8rem !important;
-          }
-
-          .footer-grid {
-            gap: 1.5rem !important;
-          }
-
-          .brand-section {
-            font-size: 1.3rem !important;
-          }
-
-          .section-heading {
-            font-size: 1rem !important;
-          }
-
-          /* Social links size */
-          .social-links a {
-            width: 36px !important;
-            height: 36px !important;
-          }
-
-          /* Legal links stack vertically */
-          .legal-links {
-            flex-direction: column;
-            gap: 0.5rem !important;
-          }
-
-          /* Copyright text */
-          .copyright {
-            font-size: 0.8rem !important;
-            line-height: 1.4 !important;
-          }
-        }
-
-        /* Tablet responsive styles */
-        @media (min-width: 769px) and (max-width: 1024px) {
-          .footer-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
-            gap: 2rem !important;
-          }
-
-          .brand-section {
-            grid-column: 1 / -1;
-            text-align: center;
-          }
-
-          .brand-section p {
-            margin: 1rem auto !important;
-          }
-
-          .social-links {
-            justify-content: center !important;
-          }
-        }
-
-        /* Large desktop adjustments */
-        @media (min-width: 1440px) {
-          footer {
-            padding: 4rem 0 2.5rem !important;
-          }
-
-          .footer-grid {
-            gap: 3rem !important;
-          }
-        }
-
-        /* Touch device optimizations */
-        @media (max-width: 768px) {
-          /* Increase touch targets */
-          .footer-link,
-          .social-links a,
-          .scroll-top {
-            min-height: 44px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-
-          /* Simplify hover effects for touch */
-          .footer-link:hover::after {
-            width: 0;
-          }
-
-          /* Active state for touch feedback */
-          .footer-link:active,
-          .social-links a:active {
-            transform: scale(0.95);
-            color: #00d4ff !important;
-          }
-
-          .scroll-top:active {
-            transform: scale(0.9);
-          }
-
-          /* Reduce animations for performance */
-          .floating-emoji {
-            animation: none;
-          }
-        }
-
-        /* Improve readability on small screens */
-        @media (max-width: 768px) {
-          .footer-link {
-            line-height: 1.5;
-          }
-
-          .brand-section p {
-            line-height: 1.6;
-          }
-        }
-
-        /* Prevent horizontal scrolling */
-        @media (max-width: 768px) {
-          .footer-grid {
-            width: 100%;
-            box-sizing: border-box;
-          }
-        }
       `}</style>
 
       <motion.footer
@@ -301,7 +91,7 @@ const Footer = () => {
         }}
       >
         {/* Background Elements */}
-        <div className="background-element" style={{
+        <div style={{
           position: 'absolute',
           top: 0,
           left: 0,
@@ -310,7 +100,7 @@ const Footer = () => {
           background: 'radial-gradient(circle at 20% 80%, rgba(0, 212, 255, 0.1) 0%, transparent 50%)',
         }} />
         
-        <div className="background-element" style={{
+        <div style={{
           position: 'absolute',
           top: '10%',
           right: '10%',
@@ -329,17 +119,17 @@ const Footer = () => {
           padding: '0 2rem'
         }}>
           {/* Main Footer Content */}
-          <div className="footer-grid" style={{
+          <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
             gap: '2.5rem',
             marginBottom: '2.5rem'
           }}>
             {/* Brand Column */}
-            <motion.div variants={itemVariants} className="brand-section">
+            <motion.div variants={itemVariants}>
               <motion.div
                 style={{
-                  fontSize: '1.5rem',
+                  fontSize: '1.5rem', // Reduced from 2rem
                   fontWeight: '700',
                   fontFamily: "'Inter', sans-serif",
                   background: 'linear-gradient(45deg, #ffffff, #00d4ff, #0099ff)',
@@ -371,7 +161,6 @@ const Footer = () => {
               {/* Social Links */}
               <motion.div 
                 variants={itemVariants}
-                className="social-links"
                 style={{ display: 'flex', gap: '0.8rem' }}
               >
                 {[
@@ -409,8 +198,8 @@ const Footer = () => {
             </motion.div>
 
             {/* Quick Links */}
-            <motion.div variants={itemVariants} className="links-column">
-              <h3 className="section-heading" style={{
+            <motion.div variants={itemVariants}>
+              <h3 style={{
                 fontSize: '1.1rem',
                 fontWeight: '600',
                 marginBottom: '1.2rem',
@@ -441,8 +230,8 @@ const Footer = () => {
             </motion.div>
 
             {/* Features */}
-            <motion.div variants={itemVariants} className="features-column">
-              <h3 className="section-heading" style={{
+            <motion.div variants={itemVariants}>
+              <h3 style={{
                 fontSize: '1.1rem',
                 fontWeight: '600',
                 marginBottom: '1.2rem',
@@ -470,8 +259,8 @@ const Footer = () => {
             </motion.div>
 
             {/* Contact Info */}
-            <motion.div variants={itemVariants} className="contact-column">
-              <h3 className="section-heading" style={{
+            <motion.div variants={itemVariants}>
+              <h3 style={{
                 fontSize: '1.1rem',
                 fontWeight: '600',
                 marginBottom: '1.2rem',
@@ -480,7 +269,7 @@ const Footer = () => {
               }}>
                 Get In Touch
               </h3>
-              <div className="contact-info" style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
                 <motion.div 
                   style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                   whileHover={{ color: '#00d4ff' }}
@@ -519,7 +308,6 @@ const Footer = () => {
           {/* Bottom Bar */}
           <motion.div
             variants={itemVariants}
-            className="bottom-bar"
             style={{
               display: 'flex',
               justifyContent: 'space-between',
@@ -528,7 +316,7 @@ const Footer = () => {
               gap: '1rem'
             }}
           >
-            <div className="copyright" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
               <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
                 &copy; 2025 EngagePositive. Made with 
               </span>
@@ -544,7 +332,7 @@ const Footer = () => {
               </span>
             </div>
 
-            <div className="legal-links" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
               <motion.a
                 href="#privacy"
                 style={{ color: '#94a3b8', fontSize: '0.85rem', textDecoration: 'none' }}
@@ -563,7 +351,6 @@ const Footer = () => {
               {/* Scroll to Top Button */}
               <motion.button
                 onClick={scrollToTop}
-                className="scroll-top"
                 whileHover={{ scale: 1.1, backgroundColor: 'rgba(0, 212, 255, 0.2)' }}
                 whileTap={{ scale: 0.9 }}
                 style={{
