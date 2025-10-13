@@ -162,63 +162,123 @@ def detect_tech_stack(domain: str) -> Dict[str, List[str]]:
         return {}
 
 # ---------------------- Improved WordPress Detection ----------------------
-
 def detect_wordpress(domain: str) -> Dict[str, Any]:
-    wp_info = {"Is WordPress": "No", "Version": "Not Detected", "Theme": "Not Detected"}
+    wp_info = {
+        "Is WordPress": "No",
+        "Version": "Not Detected",
+        "Theme": "Not Detected",
+        "Plugins": [],
+        "Page Builder": "Not Detected"
+    }
 
     try:
-        html = safe_fetch(f"https://{domain}")
+        base_url = f"https://{domain}"
+        html = safe_fetch(base_url)
         if not html:
             return wp_info
 
+        html_lower = html.lower()
+
+        # ---------------- Check for WordPress Presence ----------------
         wp_signatures = [
-            "wp-content", "wp-includes", "wp-json", "wordpress", "wp-admin", "wp-embed", "wp-login.php"
+            "wp-content", "wp-includes", "wp-json", "wp-admin", "wp-login.php", "xmlrpc.php"
         ]
-        wp_count = sum(1 for sig in wp_signatures if sig in html.lower())
-
-        # Extra check
-        readme_html = safe_fetch(f"https://{domain}/readme.html")
-        wp_json = safe_fetch(f"https://{domain}/wp-json/")
-
-        if wp_count >= 2 or readme_html or wp_json:
+        if any(sig in html_lower for sig in wp_signatures):
             wp_info["Is WordPress"] = "Yes"
 
-            # Detect Version
-            version_patterns = [
-                r"wordpress[^>]*?([0-9]+\.[0-9]+\.[0-9]+)",
-                r"wp-embed-min\.js\?ver=([0-9]+\.[0-9]+\.[0-9]+)",
-                r'content="wordpress ([0-9]+\.[0-9]+\.[0-9]+)"',
-            ]
-            for pattern in version_patterns:
-                match = re.search(pattern, html, re.IGNORECASE)
-                if match:
-                    wp_info["Version"] = match.group(1)
-                    break
+        # REST API confirmation
+        try:
+            rest_response = session.get(f"{base_url}/wp-json/", timeout=5, verify=False)
+            if rest_response.status_code == 200:
+                wp_info["Is WordPress"] = "Yes"
+        except:
+            pass
 
-            # Meta generator check
-            soup = BeautifulSoup(html, "html.parser")
-            generator = soup.find("meta", attrs={"name": "generator"})
-            if generator and "wordpress" in generator.get("content", "").lower():
-                ver_match = re.search(r"([0-9]+\.[0-9]+(?:\.[0-9]+)?)", generator.get("content", ""))
-                if ver_match:
-                    wp_info["Version"] = ver_match.group(1)
+        # Readme fallback
+        readme_html = safe_fetch(f"{base_url}/readme.html")
+        if "wordpress" in readme_html.lower():
+            wp_info["Is WordPress"] = "Yes"
 
-            # Detect theme
-            theme_patterns = [
-                r"/wp-content/themes/([^/]+)/",
-                r"themes/([^/]+)/style\.css",
-                r'theme-name["\']*:["\']*([^"\'\)]+)',
-            ]
-            for pattern in theme_patterns:
-                theme_match = re.search(pattern, html, re.IGNORECASE)
-                if theme_match:
-                    wp_info["Theme"] = re.sub(r'[\'"\)]', "", theme_match.group(1)).title()
-                    break
+        # ---------------- Detect Version ----------------
+        version_patterns = [
+            r'content=["\']WordPress\s*([0-9]+\.[0-9]+(?:\.[0-9]+)?)["\']',
+            r"wp-embed\.min\.js\?ver=([0-9]+\.[0-9]+(?:\.[0-9]+)?)",
+            r"ver=([0-9]+\.[0-9]+(?:\.[0-9]+)?)",
+            r"WordPress\s*([0-9]+\.[0-9]+(?:\.[0-9]+)?)"
+        ]
+        for pattern in version_patterns:
+            match = re.search(pattern, html, re.IGNORECASE)
+            if match:
+                wp_info["Version"] = match.group(1)
+                break
+
+        # Meta generator fallback
+        soup = BeautifulSoup(html, "html.parser")
+        generator = soup.find("meta", attrs={"name": "generator"})
+        if generator and "wordpress" in generator.get("content", "").lower():
+            ver_match = re.search(r"([0-9]+\.[0-9]+(?:\.[0-9]+)?)", generator["content"])
+            if ver_match:
+                wp_info["Version"] = ver_match.group(1)
+
+        # wp-json version check
+        if wp_info["Version"] == "Not Detected":
+            try:
+                wp_json = session.get(f"{base_url}/wp-json/", timeout=5, verify=False)
+                if wp_json.status_code == 200:
+                    data = wp_json.json()
+                    gen = data.get("generator", "")
+                    match = re.search(r"([0-9]+\.[0-9]+(?:\.[0-9]+)?)", gen)
+                    if match:
+                        wp_info["Version"] = match.group(1)
+            except:
+                pass
+
+        # Readme.html version fallback
+        if wp_info["Version"] == "Not Detected":
+            match = re.search(r"Version\s*([0-9]+\.[0-9]+(?:\.[0-9]+)?)", readme_html)
+            if match:
+                wp_info["Version"] = match.group(1)
+
+        # ---------------- Detect Theme ----------------
+        theme_match = re.search(r"/wp-content/themes/([^/]+)/", html_lower)
+        if theme_match:
+            theme_slug = theme_match.group(1)
+            theme_name = theme_slug.replace("-", " ").title()
+            wp_info["Theme"] = theme_name
+
+            # Optional: extract official theme name from style.css
+            css_url = f"{base_url}/wp-content/themes/{theme_slug}/style.css"
+            css_content = safe_fetch(css_url)
+            css_name = re.search(r"Theme Name:\s*(.+)", css_content)
+            if css_name:
+                wp_info["Theme"] = css_name.group(1).strip()
+
+        # ---------------- Detect Plugins ----------------
+        plugins = re.findall(r"/wp-content/plugins/([^/]+)/", html_lower)
+        if plugins:
+            wp_info["Plugins"] = sorted(list(set([p.replace("-", " ").title() for p in plugins])))
+
+        # ---------------- Detect Page Builders ----------------
+        builders = {
+            "Elementor": ["elementor", "elementor-frontend", "elementor-icons"],
+            "Divi": ["et_pb", "et_divi_builder", "divi"],
+            "WPBakery": ["wpb_animate_when_almost_visible", "vc_row", "wpb_wrapper"],
+            "Oxygen": ["ct_builder", "oxygen_vsb"],
+            "Beaver Builder": ["fl-builder", "fl-builder-content"],
+            "Bricks Builder": ["bricks-builder"],
+            "Brizy": ["brz-"],
+        }
+
+        for builder, keywords in builders.items():
+            if any(k in html_lower for k in keywords):
+                wp_info["Page Builder"] = builder
+                break
 
     except Exception as e:
         logger.error(f"WordPress detection error: {str(e)}")
 
     return wp_info
+
 
 # ---------------------- Improved Ads Detection ----------------------
 
