@@ -172,11 +172,77 @@ const CTASection = ({ onAudit }) => {
           transform: translateY(-2px);
           box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
         }
+
+        /* Mobile Styles */
+        @media (max-width: 768px) {
+          .audit-button {
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            width: 100%;
+            max-width: 300px;
+          }
+
+          .pro-card {
+            padding: 1.5rem;
+            border-radius: 20px;
+          }
+
+          .price-tag {
+            font-size: 2.5rem;
+          }
+
+          .feature-item {
+            font-size: 0.9rem;
+            padding: 0.4rem 0;
+          }
+
+          .checkmark {
+            width: 18px;
+            height: 18px;
+            margin-right: 10px;
+          }
+
+          .pro-button {
+            padding: 0.9rem 1.5rem;
+            font-size: 1rem;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .audit-button {
+            padding: 0.9rem 1.5rem;
+            font-size: 1rem;
+            border-radius: 12px;
+          }
+
+          .pro-card {
+            padding: 1.25rem;
+            border-radius: 16px;
+          }
+
+          .price-tag {
+            font-size: 2rem;
+          }
+
+          .feature-item {
+            font-size: 0.85rem;
+          }
+
+          .checkmark {
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
+          }
+
+          .checkmark::before {
+            font-size: 10px;
+          }
+        }
       `}</style>
 
       <section
         style={{
-          padding: '6rem 0',
+          padding: '4rem 0',
           background: 'radial-gradient(circle at 50% 50%, rgba(102, 126, 234, 0.05) 0%, transparent 50%), linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
           fontFamily: "'Inter', sans-serif",
           textAlign: 'center',
@@ -184,7 +250,7 @@ const CTASection = ({ onAudit }) => {
           overflow: 'hidden'
         }}
       >
-        {/* Background Elements */}
+        {/* Background Elements - Reduced on mobile */}
         <motion.div
           animate={floatAnimation}
           style={{
@@ -221,7 +287,7 @@ const CTASection = ({ onAudit }) => {
           style={{
             maxWidth: '1200px',
             margin: '0 auto',
-            padding: '0 2rem',
+            padding: '0 1rem',
             position: 'relative',
             zIndex: 2
           }}
@@ -230,16 +296,17 @@ const CTASection = ({ onAudit }) => {
           <motion.div variants={itemVariants}>
             <motion.h2
               style={{
-                fontSize: '3.5rem',
+                fontSize: 'clamp(2rem, 5vw, 3.5rem)',
                 fontWeight: '800',
                 marginBottom: '1.5rem',
                 color: '#1a202c',
                 lineHeight: '1.1',
-                letterSpacing: '-0.02em'
+                letterSpacing: '-0.02em',
+                padding: '0 0.5rem'
               }}
             >
               Ready to{' '}
-              <span className="gradient-text" style={{ display: 'block' }}>
+              <span className="gradient-text" style={{ display: 'block', marginTop: '0.5rem' }}>
                 Transform Your Digital Presence?
               </span>
             </motion.h2>
@@ -249,12 +316,13 @@ const CTASection = ({ onAudit }) => {
           <motion.div variants={itemVariants}>
             <motion.p
               style={{
-                fontSize: '1.3rem',
+                fontSize: 'clamp(1rem, 3vw, 1.3rem)',
                 color: '#64748b',
                 marginBottom: '3rem',
                 lineHeight: '1.6',
                 maxWidth: '600px',
-                margin: '0 auto 3rem auto'
+                margin: '0 auto 3rem auto',
+                padding: '0 1rem'
               }}
             >
               Start with our free audit or unlock advanced features with Pro for comprehensive insights.
@@ -273,7 +341,7 @@ const CTASection = ({ onAudit }) => {
               className="audit-button"
               onClick={scrollToHero}
               style={{
-                marginBottom: '4rem'
+                marginBottom: '3rem'
               }}
             >
               Start Your Free Audit Now
@@ -285,8 +353,8 @@ const CTASection = ({ onAudit }) => {
             variants={itemVariants}
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
-              gap: '3rem',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 400px), 1fr))',
+              gap: '2rem',
               alignItems: 'start',
               maxWidth: '900px',
               margin: '0 auto'
@@ -301,7 +369,7 @@ const CTASection = ({ onAudit }) => {
               }}
             >
               <h3 style={{ 
-                fontSize: '1.5rem', 
+                fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', 
                 fontWeight: '700', 
                 marginBottom: '1rem',
                 color: '#1a202c'
@@ -309,14 +377,18 @@ const CTASection = ({ onAudit }) => {
                 Free Plan
               </h3>
               <div style={{ 
-                fontSize: '2rem', 
+                fontSize: 'clamp(1.75rem, 5vw, 2rem)', 
                 fontWeight: '800', 
                 color: '#64748b',
                 margin: '1rem 0'
               }}>
                 $0
               </div>
-              <p style={{ color: '#64748b', marginBottom: '2rem' }}>
+              <p style={{ 
+                color: '#64748b', 
+                marginBottom: '2rem',
+                fontSize: 'clamp(0.9rem, 3vw, 1rem)'
+              }}>
                 Perfect for getting started
               </p>
               
@@ -348,7 +420,8 @@ const CTASection = ({ onAudit }) => {
                   width: '100%',
                   background: 'rgba(102, 126, 234, 0.1)',
                   color: '#667eea',
-                  border: '2px solid #667eea'
+                  border: '2px solid #667eea',
+                  fontSize: 'clamp(1rem, 3vw, 1.1rem)'
                 }}
               >
                 Get Started Free
@@ -370,26 +443,30 @@ const CTASection = ({ onAudit }) => {
                 right: '1rem',
                 background: 'linear-gradient(135deg, #667eea, #764ba2)',
                 color: 'white',
-                padding: '0.5rem 1rem',
+                padding: '0.4rem 0.8rem',
                 borderRadius: '20px',
-                fontSize: '0.8rem',
+                fontSize: 'clamp(0.7rem, 2vw, 0.8rem)',
                 fontWeight: '600'
               }}>
                 MOST POPULAR
               </div>
 
               <h3 style={{ 
-                fontSize: '1.5rem', 
+                fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', 
                 fontWeight: '700', 
                 marginBottom: '1rem',
                 color: '#1a202c'
               }}>
                 Pro Plan
               </h3>
-              <div className="price-tag">
-                $29<span style={{ fontSize: '1rem', color: '#64748b' }}>/month</span>
+              <div className="price-tag" style={{ fontSize: 'clamp(2rem, 6vw, 3rem)' }}>
+                $29<span style={{ fontSize: 'clamp(0.8rem, 2.5vw, 1rem)', color: '#64748b' }}>/month</span>
               </div>
-              <p style={{ color: '#64748b', marginBottom: '2rem' }}>
+              <p style={{ 
+                color: '#64748b', 
+                marginBottom: '2rem',
+                fontSize: 'clamp(0.9rem, 3vw, 1rem)'
+              }}>
                 Advanced features for professionals
               </p>
               
@@ -402,7 +479,7 @@ const CTASection = ({ onAudit }) => {
                 ))}
               </div>
 
-              <button className="pro-button">
+              <button className="pro-button" style={{ fontSize: 'clamp(1rem, 3vw, 1.1rem)' }}>
                 Upgrade to Pro
               </button>
             </motion.div>
@@ -413,12 +490,12 @@ const CTASection = ({ onAudit }) => {
             variants={itemVariants}
             style={{
               marginTop: '3rem',
-              padding: '1.5rem',
+              padding: '1.5rem 1rem',
               color: '#64748b',
-              fontSize: '0.9rem'
+              fontSize: 'clamp(0.8rem, 2.5vw, 0.9rem)'
             }}
           >
-            <p style={{ margin: 0 }}>
+            <p style={{ margin: 0, lineHeight: '1.5' }}>
               No credit card required for free plan • Cancel anytime • 30-day money-back guarantee
             </p>
           </motion.div>
