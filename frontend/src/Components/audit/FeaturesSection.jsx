@@ -2,20 +2,10 @@ import React, { useState, useEffect } from 'react'
 
 const FeaturesSection = () => {
   const [hoveredCard, setHoveredCard] = useState(null)
-  const [isMobile, setIsMobile] = useState(false)
+  const [isVisible, setIsVisible] = useState(false)
 
   useEffect(() => {
-    // Check if mobile on mount and on resize
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768)
-    }
-    
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    
-    return () => {
-      window.removeEventListener('resize', checkMobile)
-    }
+    setIsVisible(true)
   }, [])
 
   const features = [
@@ -79,52 +69,52 @@ const FeaturesSection = () => {
     const patterns = {
       circles: (
         <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0, opacity: 0.03 }}>
-          <pattern id={`circles-${color}`} width="60" height="60" patternUnits="userSpaceOnUse">
+          <pattern id="circles" width="60" height="60" patternUnits="userSpaceOnUse">
             <circle cx="30" cy="30" r="3" fill={color} />
             <circle cx="10" cy="10" r="2" fill={color} />
             <circle cx="50" cy="20" r="2" fill={color} />
           </pattern>
-          <rect width="100%" height="100%" fill={`url(#circles-${color})`} />
+          <rect width="100%" height="100%" fill="url(#circles)" />
         </svg>
       ),
       grid: (
         <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0, opacity: 0.03 }}>
-          <pattern id={`grid-${color}`} width="40" height="40" patternUnits="userSpaceOnUse">
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
             <path d="M 40 0 L 0 0 0 40" fill="none" stroke={color} strokeWidth="1"/>
           </pattern>
-          <rect width="100%" height="100%" fill={`url(#grid-${color})`} />
+          <rect width="100%" height="100%" fill="url(#grid)" />
         </svg>
       ),
       waves: (
         <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0, opacity: 0.03 }}>
-          <pattern id={`waves-${color}`} width="80" height="40" patternUnits="userSpaceOnUse">
+          <pattern id="waves" width="80" height="40" patternUnits="userSpaceOnUse">
             <path d="M0 20 Q20 10,40 20 T80 20" stroke={color} strokeWidth="1" fill="none"/>
           </pattern>
-          <rect width="100%" height="100%" fill={`url(#waves-${color})`} />
+          <rect width="100%" height="100%" fill="url(#waves)" />
         </svg>
       ),
       shields: (
         <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0, opacity: 0.03 }}>
-          <pattern id={`shields-${color}`} width="50" height="50" patternUnits="userSpaceOnUse">
+          <pattern id="shields" width="50" height="50" patternUnits="userSpaceOnUse">
             <path d="M25 5 L45 15 L45 35 L25 45 L5 35 L5 15 Z" stroke={color} strokeWidth="1" fill="none"/>
           </pattern>
-          <rect width="100%" height="100%" fill={`url(#shields-${color})`} />
+          <rect width="100%" height="100%" fill="url(#shields)" />
         </svg>
       ),
       dots: (
         <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0, opacity: 0.03 }}>
-          <pattern id={`dots-${color}`} width="20" height="20" patternUnits="userSpaceOnUse">
+          <pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse">
             <circle cx="10" cy="10" r="1.5" fill={color} />
           </pattern>
-          <rect width="100%" height="100%" fill={`url(#dots-${color})`} />
+          <rect width="100%" height="100%" fill="url(#dots)" />
         </svg>
       ),
       lines: (
         <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0, opacity: 0.03 }}>
-          <pattern id={`lines-${color}`} width="30" height="30" patternUnits="userSpaceOnUse">
+          <pattern id="lines" width="30" height="30" patternUnits="userSpaceOnUse">
             <path d="M0 30 L30 0" stroke={color} strokeWidth="1" fill="none"/>
           </pattern>
-          <rect width="100%" height="100%" fill={`url(#lines-${color})`} />
+          <rect width="100%" height="100%" fill="url(#lines)" />
         </svg>
       )
     }
@@ -134,21 +124,16 @@ const FeaturesSection = () => {
 
   return (
     <>
-      <style jsx global>{`
+      <style jsx>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-        
-        .features-section * {
-          box-sizing: border-box;
-        }
-        
+
         .feature-card {
           transition: all 0.3s ease;
           cursor: pointer;
-          width: 100%;
         }
 
         .feature-card:hover {
-          transform: ${isMobile ? 'none' : 'translateY(-8px)'};
+          transform: translateY(-8px);
         }
 
         .feature-icon {
@@ -156,7 +141,7 @@ const FeaturesSection = () => {
         }
 
         .feature-card:hover .feature-icon {
-          transform: ${isMobile ? 'none' : 'scale(1.1)'};
+          transform: scale(1.1);
         }
 
         .fade-in-up {
@@ -179,124 +164,133 @@ const FeaturesSection = () => {
         .stagger-animation > *:nth-child(5) { animation-delay: 0.5s; }
         .stagger-animation > *:nth-child(6) { animation-delay: 0.6s; }
 
-        /* Mobile Responsive Styles */
+        /* Mobile Responsive Styles for Features Section */
         @media (max-width: 768px) {
-          .features-section {
-            padding: 3rem 0 !important;
+          /* Section padding */
+          section {
+            padding: 4rem 0 !important;
           }
 
-          .features-container {
+          /* Container padding */
+          section > div:first-child {
             padding: 0 1rem !important;
-            max-width: 100% !important;
           }
 
-          .features-header h2 {
-            font-size: 1.8rem !important;
+          /* Header adjustments */
+          h2 {
+            font-size: 2.2rem !important;
             line-height: 1.2 !important;
-            text-align: center;
-          }
-
-          .features-header p {
-            font-size: 1rem !important;
             padding: 0 0.5rem;
-            margin-bottom: 2.5rem !important;
-            text-align: center;
           }
 
+          /* Subtitle */
+          p {
+            font-size: 1.1rem !important;
+            padding: 0 1rem;
+            margin-bottom: 3rem !important;
+          }
+
+          /* Features grid - single column on mobile */
           .features-grid {
             grid-template-columns: 1fr !important;
-            gap: 1.2rem !important;
-            width: 100%;
+            gap: 1.5rem !important;
           }
 
+          /* Feature cards */
           .feature-card {
-            padding: 1.5rem 1.2rem !important;
+            padding: 2rem 1.5rem !important;
             margin: 0 auto;
-            max-width: 100%;
+            max-width: 400px;
+            width: 100%;
             border-radius: 16px !important;
-            min-height: auto !important;
           }
 
+          /* Icon container */
           .feature-icon {
-            width: 55px !important;
-            height: 55px !important;
+            width: 60px !important;
+            height: 60px !important;
             border-radius: 14px !important;
-            font-size: 1.4rem !important;
-            margin-bottom: 1rem !important;
+            font-size: 1.5rem !important;
+            margin-bottom: 1.2rem !important;
           }
 
+          /* Feature title */
           .feature-title {
-            font-size: 1.25rem !important;
+            font-size: 1.3rem !important;
             margin-bottom: 0.8rem !important;
           }
 
+          /* Feature description */
           .feature-description {
-            font-size: 0.9rem !important;
-            margin-bottom: 1.2rem !important;
+            font-size: 0.95rem !important;
+            margin-bottom: 1.5rem !important;
             line-height: 1.5 !important;
           }
 
+          /* Feature details list */
           .feature-detail {
             padding: 0.6rem 0.8rem !important;
-            font-size: 0.85rem !important;
-            min-height: auto !important;
+            font-size: 0.9rem !important;
           }
 
           .feature-detail span {
-            font-size: 0.85rem !important;
-            line-height: 1.4;
+            font-size: 0.9rem !important;
           }
 
+          /* Floating action */
           .floating-action {
-            margin-top: 1.2rem !important;
+            margin-top: 1.5rem !important;
             padding: 0.6rem !important;
           }
 
+          /* Background elements - reduce on mobile */
           .background-element {
             display: none;
           }
         }
 
         @media (max-width: 480px) {
-          .features-section {
-            padding: 2.5rem 0 !important;
+          /* Extra small devices */
+          section {
+            padding: 3rem 0 !important;
           }
 
-          .features-header h2 {
-            font-size: 1.6rem !important;
+          h2 {
+            font-size: 1.8rem !important;
           }
 
-          .features-header p {
-            font-size: 0.95rem !important;
-            margin-bottom: 2rem !important;
+          p {
+            font-size: 1rem !important;
+            margin-bottom: 2.5rem !important;
           }
 
           .feature-card {
-            padding: 1.2rem 1rem !important;
+            padding: 1.5rem 1.2rem !important;
             border-radius: 14px !important;
           }
 
           .feature-icon {
-            width: 50px !important;
-            height: 50px !important;
-            font-size: 1.2rem !important;
+            width: 55px !important;
+            height: 55px !important;
+            font-size: 1.3rem !important;
+            margin-bottom: 1rem !important;
           }
 
           .feature-title {
-            font-size: 1.1rem !important;
+            font-size: 1.2rem !important;
           }
 
           .feature-description {
-            font-size: 0.85rem !important;
+            font-size: 0.9rem !important;
           }
 
           .feature-detail {
             padding: 0.5rem 0.7rem !important;
-            font-size: 0.8rem !important;
+            font-size: 0.85rem !important;
           }
 
           .features-grid {
-            gap: 1rem !important;
+            gap: 1.2rem !important;
           }
         }
 
@@ -304,19 +298,24 @@ const FeaturesSection = () => {
         @media (min-width: 769px) and (max-width: 1024px) {
           .features-grid {
             grid-template-columns: repeat(2, 1fr) !important;
-            gap: 1.5rem !important;
+            gap: 1.8rem !important;
           }
 
           .feature-card {
-            padding: 2rem 1.5rem !important;
+            padding: 2rem 1.8rem !important;
           }
 
-          .features-header h2 {
-            font-size: 2.5rem !important;
+          h2 {
+            font-size: 2.8rem !important;
           }
 
-          .features-header p {
-            font-size: 1.1rem !important;
+          p {
+            font-size: 1.15rem !important;
+          }
+
+          /* Reduce background animation scale on tablet */
+          .background-element {
+            transform: scale(0.8);
           }
         }
 
@@ -324,101 +323,116 @@ const FeaturesSection = () => {
         @media (min-width: 1440px) {
           .features-grid {
             grid-template-columns: repeat(3, 1fr) !important;
-            gap: 2rem !important;
+            gap: 2.5rem !important;
           }
 
           .feature-card {
-            padding: 2.5rem 2rem !important;
+            padding: 3rem 2.5rem !important;
           }
         }
 
         /* Touch device optimizations */
         @media (max-width: 768px) {
+          /* Increase touch targets */
+          .feature-card,
+          .feature-detail {
+            min-height: 44px;
+          }
+
+          /* Simplify hover effects for touch */
+          .feature-card:hover {
+            transform: none !important;
+          }
+
+          /* Active state for touch feedback */
           .feature-card:active {
             transform: scale(0.98) !important;
             background: rgba(255, 255, 255, 0.95) !important;
           }
-        }
 
-        /* Performance optimizations */
-        @media (max-width: 768px) {
+          /* Reduce animations for performance */
           .feature-card {
             animation: none;
-            transition: none;
           }
-          
-          .feature-icon {
-            transition: none;
+        }
+
+        /* Improve readability on small screens */
+        @media (max-width: 768px) {
+          .feature-description {
+            line-height: 1.5 !important;
+          }
+
+          .feature-detail span {
+            line-height: 1.4;
+          }
+        }
+
+        /* Prevent horizontal scrolling */
+        @media (max-width: 768px) {
+          .features-grid {
+            width: 100%;
+            box-sizing: border-box;
           }
         }
       `}</style>
 
       <section
         id="features"
-        className="features-section"
         style={{
-          padding: '5rem 0',
+          padding: '6rem 0',
           background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-          fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+          fontFamily: "'Inter', sans-serif",
           position: 'relative',
-          overflow: 'hidden',
-          width: '100%'
+          overflow: 'hidden'
         }}
       >
-        {/* Background Elements - Hidden on mobile */}
-        {!isMobile && (
-          <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
-            <div
-              className="background-element"
-              style={{
-                position: 'absolute',
-                top: '10%',
-                right: '10%',
-                width: '300px',
-                height: '300px',
-                background: 'linear-gradient(45deg, rgba(59, 130, 246, 0.05), rgba(139, 92, 246, 0.05))',
-                borderRadius: '50%',
-                filter: 'blur(40px)'
-              }}
-            />
-            
-            <div
-              className="background-element"
-              style={{
-                position: 'absolute',
-                bottom: '20%',
-                left: '5%',
-                width: '250px',
-                height: '250px',
-                background: 'linear-gradient(45deg, rgba(16, 185, 129, 0.05), rgba(59, 130, 246, 0.05))',
-                borderRadius: '50%',
-                filter: 'blur(30px)'
-              }}
-            />
-          </div>
-        )}
+        {/* Background Elements */}
+        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+          <div
+            className="background-element"
+            style={{
+              position: 'absolute',
+              top: '10%',
+              right: '10%',
+              width: '300px',
+              height: '300px',
+              background: 'linear-gradient(45deg, rgba(59, 130, 246, 0.05), rgba(139, 92, 246, 0.05))',
+              borderRadius: '50%',
+              filter: 'blur(40px)'
+            }}
+          />
+          
+          <div
+            className="background-element"
+            style={{
+              position: 'absolute',
+              bottom: '20%',
+              left: '5%',
+              width: '250px',
+              height: '250px',
+              background: 'linear-gradient(45deg, rgba(16, 185, 129, 0.05), rgba(59, 130, 246, 0.05))',
+              borderRadius: '50%',
+              filter: 'blur(30px)'
+            }}
+          />
+        </div>
 
-        <div 
-          className="features-container"
-          style={{
-            maxWidth: '1200px',
-            margin: '0 auto',
-            padding: '0 1.5rem',
-            position: 'relative',
-            width: '100%'
-          }}
-        >
+        <div style={{
+          maxWidth: '1200px',
+          margin: '0 auto',
+          padding: '0 2rem',
+          position: 'relative'
+        }}>
           {/* Header */}
           <div
-            className="features-header fade-in-up"
+            className="fade-in-up"
             style={{
               textAlign: 'center',
-              marginBottom: '3rem',
-              width: '100%'
+              marginBottom: '4rem'
             }}
           >
             <h2 style={{
-              fontSize: '2.8rem',
+              fontSize: '3rem',
               fontWeight: '800',
               marginBottom: '1rem',
               color: '#1a202c',
@@ -436,7 +450,7 @@ const FeaturesSection = () => {
               </span>
             </h2>
             <p style={{
-              fontSize: '1.15rem',
+              fontSize: '1.2rem',
               color: '#64748b',
               maxWidth: '600px',
               margin: '0 auto',
@@ -453,29 +467,26 @@ const FeaturesSection = () => {
             className="features-grid stagger-animation"
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-              gap: '1.5rem',
-              position: 'relative',
-              width: '100%'
+              gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+              gap: '2rem',
+              position: 'relative'
             }}
           >
             {features.map((feature, index) => (
               <div
                 key={index}
                 className="feature-card fade-in-up"
-                onMouseEnter={() => !isMobile && setHoveredCard(index)}
-                onMouseLeave={() => !isMobile && setHoveredCard(null)}
-                onClick={() => isMobile && setHoveredCard(hoveredCard === index ? null : index)}
+                onMouseEnter={() => setHoveredCard(index)}
+                onMouseLeave={() => setHoveredCard(null)}
                 style={{
                   background: 'white',
-                  padding: '2rem',
-                  borderRadius: '18px',
-                  boxShadow: '0 8px 30px rgba(0,0,0,0.06)',
-                  border: `1px solid rgba(0,0,0,0.04)`,
+                  padding: '2.5rem',
+                  borderRadius: '20px',
+                  boxShadow: '0 10px 40px rgba(0,0,0,0.08)',
+                  border: `1px solid rgba(0,0,0,0.05)`,
                   position: 'relative',
                   overflow: 'hidden',
-                  cursor: isMobile ? 'pointer' : 'default',
-                  minHeight: isMobile ? 'auto' : '400px'
+                  cursor: 'pointer'
                 }}
               >
                 {/* Pattern Background */}
@@ -495,20 +506,20 @@ const FeaturesSection = () => {
                   }}
                 />
 
-                <div style={{ position: 'relative', zIndex: 2, height: '100%' }}>
+                <div style={{ position: 'relative', zIndex: 2 }}>
                   {/* Icon Container */}
                   <div
                     className="feature-icon"
                     style={{
-                      width: '65px',
-                      height: '65px',
-                      borderRadius: '16px',
+                      width: '70px',
+                      height: '70px',
+                      borderRadius: '18px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '1.8rem',
-                      marginBottom: '1.2rem',
-                      boxShadow: `0 6px 20px ${feature.color}25`,
+                      fontSize: '2rem',
+                      marginBottom: '1.5rem',
+                      boxShadow: `0 8px 25px ${feature.color}30`,
                       background: `linear-gradient(135deg, ${feature.color}, ${feature.color}80)`
                     }}
                   >
@@ -519,9 +530,9 @@ const FeaturesSection = () => {
                   <h3
                     className="feature-title"
                     style={{
-                      fontSize: '1.35rem',
+                      fontSize: '1.5rem',
                       fontWeight: '700',
-                      marginBottom: '0.8rem',
+                      marginBottom: '1rem',
                       lineHeight: '1.2',
                       color: hoveredCard === index ? feature.color : '#1a202c',
                       transition: 'color 0.3s ease'
@@ -534,10 +545,10 @@ const FeaturesSection = () => {
                   <p
                     className="feature-description"
                     style={{
-                      fontSize: '0.95rem',
+                      fontSize: '1rem',
                       color: '#64748b',
                       lineHeight: '1.6',
-                      marginBottom: '1.5rem',
+                      marginBottom: '2rem',
                       fontWeight: '400'
                     }}
                   >
@@ -548,7 +559,7 @@ const FeaturesSection = () => {
                   <div style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '0.6rem'
+                    gap: '0.8rem'
                   }}>
                     {feature.details.map((detail, detailIndex) => (
                       <div
@@ -557,8 +568,8 @@ const FeaturesSection = () => {
                         style={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '0.7rem',
-                          padding: '0.7rem 0.9rem',
+                          gap: '0.8rem',
+                          padding: '0.8rem 1rem',
                           borderRadius: '10px',
                           border: `1px solid ${feature.color}10`,
                           background: 'rgba(255,255,255,0.8)',
@@ -567,13 +578,13 @@ const FeaturesSection = () => {
                       >
                         <div
                           style={{
-                            width: '22px',
-                            height: '22px',
+                            width: '24px',
+                            height: '24px',
                             borderRadius: '6px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: '0.7rem',
+                            fontSize: '0.8rem',
                             color: 'white',
                             fontWeight: 'bold',
                             flexShrink: 0,
@@ -584,7 +595,7 @@ const FeaturesSection = () => {
                         </div>
                         <span style={{
                           color: '#374151',
-                          fontSize: '0.9rem',
+                          fontSize: '0.95rem',
                           fontWeight: '500'
                         }}>
                           {detail}
@@ -593,45 +604,43 @@ const FeaturesSection = () => {
                     ))}
                   </div>
 
-                  {/* Floating Action - Only show on hover for desktop */}
-                  {!isMobile && (
-                    <div
-                      className="floating-action"
+                  {/* Floating Action */}
+                  <div
+                    className="floating-action"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      marginTop: '2rem',
+                      padding: '0.8rem',
+                      background: `linear-gradient(90deg, ${feature.color}08, ${feature.color}15)`,
+                      borderRadius: '10px',
+                      border: `1px solid ${feature.color}20`,
+                      opacity: hoveredCard === index ? 1 : 0,
+                      transform: `translateY(${hoveredCard === index ? 0 : 10}px)`,
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    <span
                       style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        marginTop: '1.5rem',
-                        padding: '0.7rem',
-                        background: `linear-gradient(90deg, ${feature.color}08, ${feature.color}15)`,
-                        borderRadius: '8px',
-                        border: `1px solid ${feature.color}20`,
-                        opacity: hoveredCard === index ? 1 : 0,
-                        transform: `translateY(${hoveredCard === index ? 0 : 8}px)`,
-                        transition: 'all 0.3s ease'
+                        fontSize: '0.9rem',
+                        fontWeight: '600',
+                        color: feature.color
                       }}
                     >
-                      <span
-                        style={{
-                          fontSize: '0.85rem',
-                          fontWeight: '600',
-                          color: feature.color
-                        }}
-                      >
-                        Learn more
-                      </span>
-                      <span
-                        style={{
-                          fontSize: '0.9rem',
-                          color: feature.color,
-                          transform: hoveredCard === index ? 'translateX(3px)' : 'translateX(0)',
-                          transition: 'transform 0.3s ease'
-                        }}
-                      >
-                        →
-                      </span>
-                    </div>
-                  )}
+                      Learn more
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '1rem',
+                        color: feature.color,
+                        transform: hoveredCard === index ? 'translateX(5px)' : 'translateX(0)',
+                        transition: 'transform 0.3s ease'
+                      }}
+                    >
+                      →
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}
