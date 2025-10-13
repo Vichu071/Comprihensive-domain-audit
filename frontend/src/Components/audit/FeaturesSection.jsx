@@ -1,11 +1,24 @@
 import React, { useState, useEffect } from 'react'
 
 const FeaturesSection = () => {
-  const [hoveredCard, setHoveredCard] = useState(null)
+  const [activeCard, setActiveCard] = useState(null)
   const [isVisible, setIsVisible] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
     setIsVisible(true)
+    
+    // Check if mobile device
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768)
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    
+    return () => {
+      window.removeEventListener('resize', checkMobile)
+    }
   }, [])
 
   const features = [
@@ -122,6 +135,20 @@ const FeaturesSection = () => {
     return patterns[pattern] || patterns.circles
   }
 
+  const handleCardClick = (index) => {
+    if (isMobile) {
+      setActiveCard(activeCard === index ? null : index)
+    }
+  }
+
+  const isCardActive = (index) => {
+    if (isMobile) {
+      return activeCard === index
+    }
+    // On desktop, we can keep hover behavior or set to always show details
+    return true // You can change this based on your preference
+  }
+
   return (
     <>
       <style jsx>{`
@@ -132,16 +159,29 @@ const FeaturesSection = () => {
           cursor: pointer;
         }
 
-        .feature-card:hover {
-          transform: translateY(-8px);
+        /* Desktop hover effects */
+        @media (min-width: 769px) {
+          .feature-card:hover {
+            transform: translateY(-8px);
+          }
+
+          .feature-card:hover .feature-icon {
+            transform: scale(1.1);
+          }
+        }
+
+        /* Mobile active state */
+        .feature-card.mobile-active {
+            transform: translateY(-4px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15) !important;
+        }
+
+        .feature-card.mobile-active .feature-icon {
+            transform: scale(1.05);
         }
 
         .feature-icon {
           transition: all 0.3s ease;
-        }
-
-        .feature-card:hover .feature-icon {
-          transform: scale(1.1);
         }
 
         .fade-in-up {
@@ -203,6 +243,18 @@ const FeaturesSection = () => {
             max-width: 400px;
             width: 100%;
             border-radius: 16px !important;
+            transition: all 0.3s ease !important;
+          }
+
+          /* Mobile tap feedback */
+          .feature-card:active {
+            transform: scale(0.98) !important;
+          }
+
+          /* Always show details on mobile - no hover dependency */
+          .floating-action {
+            opacity: 1 !important;
+            transform: translateY(0) !important;
           }
 
           /* Icon container */
@@ -237,15 +289,22 @@ const FeaturesSection = () => {
             font-size: 0.9rem !important;
           }
 
-          /* Floating action */
+          /* Floating action - always visible on mobile */
           .floating-action {
             margin-top: 1.5rem !important;
             padding: 0.6rem !important;
+            opacity: 1 !important;
+            transform: translateY(0) !important;
           }
 
           /* Background elements - reduce on mobile */
           .background-element {
             display: none;
+          }
+
+          /* Accent line - always full width on mobile */
+          .accent-line {
+            width: 100% !important;
           }
         }
 
@@ -334,8 +393,7 @@ const FeaturesSection = () => {
         /* Touch device optimizations */
         @media (max-width: 768px) {
           /* Increase touch targets */
-          .feature-card,
-          .feature-detail {
+          .feature-card {
             min-height: 44px;
           }
 
@@ -475,9 +533,10 @@ const FeaturesSection = () => {
             {features.map((feature, index) => (
               <div
                 key={index}
-                className="feature-card fade-in-up"
-                onMouseEnter={() => setHoveredCard(index)}
-                onMouseLeave={() => setHoveredCard(null)}
+                className={`feature-card ${activeCard === index ? 'mobile-active' : ''}`}
+                onMouseEnter={() => !isMobile && setActiveCard(index)}
+                onMouseLeave={() => !isMobile && setActiveCard(null)}
+                onClick={() => handleCardClick(index)}
                 style={{
                   background: 'white',
                   padding: '2.5rem',
@@ -486,7 +545,9 @@ const FeaturesSection = () => {
                   border: `1px solid rgba(0,0,0,0.05)`,
                   position: 'relative',
                   overflow: 'hidden',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  transform: (isMobile && activeCard === index) ? 'translateY(-4px)' : 'translateY(0)',
+                  transition: 'all 0.3s ease'
                 }}
               >
                 {/* Pattern Background */}
@@ -494,13 +555,14 @@ const FeaturesSection = () => {
 
                 {/* Creative Accent Line */}
                 <div
+                  className="accent-line"
                   style={{
                     position: 'absolute',
                     top: 0,
                     left: 0,
                     height: '4px',
                     borderRadius: '2px',
-                    width: hoveredCard === index ? '100%' : '60px',
+                    width: (isMobile || activeCard === index) ? '100%' : '60px',
                     background: `linear-gradient(90deg, ${feature.color}, ${feature.color}80)`,
                     transition: 'width 0.3s ease'
                   }}
@@ -520,7 +582,9 @@ const FeaturesSection = () => {
                       fontSize: '2rem',
                       marginBottom: '1.5rem',
                       boxShadow: `0 8px 25px ${feature.color}30`,
-                      background: `linear-gradient(135deg, ${feature.color}, ${feature.color}80)`
+                      background: `linear-gradient(135deg, ${feature.color}, ${feature.color}80)`,
+                      transform: (isMobile && activeCard === index) ? 'scale(1.05)' : 'scale(1)',
+                      transition: 'transform 0.3s ease'
                     }}
                   >
                     {feature.icon}
@@ -534,7 +598,7 @@ const FeaturesSection = () => {
                       fontWeight: '700',
                       marginBottom: '1rem',
                       lineHeight: '1.2',
-                      color: hoveredCard === index ? feature.color : '#1a202c',
+                      color: (isMobile && activeCard === index) ? feature.color : '#1a202c',
                       transition: 'color 0.3s ease'
                     }}
                   >
@@ -616,8 +680,8 @@ const FeaturesSection = () => {
                       background: `linear-gradient(90deg, ${feature.color}08, ${feature.color}15)`,
                       borderRadius: '10px',
                       border: `1px solid ${feature.color}20`,
-                      opacity: hoveredCard === index ? 1 : 0,
-                      transform: `translateY(${hoveredCard === index ? 0 : 10}px)`,
+                      opacity: (isMobile || activeCard === index) ? 1 : 0,
+                      transform: `translateY(${(isMobile || activeCard === index) ? 0 : 10}px)`,
                       transition: 'all 0.3s ease'
                     }}
                   >
@@ -634,7 +698,7 @@ const FeaturesSection = () => {
                       style={{
                         fontSize: '1rem',
                         color: feature.color,
-                        transform: hoveredCard === index ? 'translateX(5px)' : 'translateX(0)',
+                        transform: (isMobile || activeCard === index) ? 'translateX(5px)' : 'translateX(0)',
                         transition: 'transform 0.3s ease'
                       }}
                     >
