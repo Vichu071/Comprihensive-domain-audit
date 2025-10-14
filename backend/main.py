@@ -12,546 +12,338 @@ import os
 from requests.adapters import HTTPAdapter, Retry
 import ssl
 import socket
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 import time
 import urllib3
 from datetime import datetime
+from collections import Counter
 
-# Disable SSL warnings
+# ---------------------- Basic Setup ----------------------
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("domain-audit")
 
-app = FastAPI(title="Domain Audit API", version="2.3")
-
+app = FastAPI(title="Domain Audit API", version="2.5")
 app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
 )
 
-# DNS Resolver
+# ---------------------- DNS Resolver ----------------------
 resolver = dns.resolver.Resolver()
-resolver.nameservers = ["8.8.8.8", "1.1.1.1"]
+resolver.nameservers = ["8.8.8.8", "1.1.1.1", "8.8.4.4", "1.0.0.1"]
+resolver.timeout = 10
+resolver.lifetime = 10
 
-# Requests session with retries
+# ---------------------- Requests Session ----------------------
 session = requests.Session()
-retries = Retry(total=3, backoff_factor=0.5, status_forcelist=[429, 500, 502, 503, 504])
+retries = Retry(total=3, backoff_factor=1, status_forcelist=[500, 502, 503, 504])
 session.mount("http://", HTTPAdapter(max_retries=retries))
 session.mount("https://", HTTPAdapter(max_retries=retries))
 
 # ---------------------- Utility Functions ----------------------
-
-def safe_fetch(url: str, timeout: int = 10, method: str = "GET") -> str:
-    """Fetch a URL and return text (silently returns empty string on failure)."""
+def safe_fetch(url: str, timeout: int = 15) -> str:
     headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        ),
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
     }
     try:
-        if method.upper() == "HEAD":
-            response = session.head(url, headers=headers, timeout=timeout, verify=False)
-            response.raise_for_status()
-            return ""
-        response = session.get(url, headers=headers, timeout=timeout, verify=False)
-        response.raise_for_status()
-        return response.text
+        resp = session.get(url, headers=headers, timeout=timeout, verify=False, allow_redirects=True)
+        resp.raise_for_status()
+        return resp.text
     except Exception as e:
-        logger.debug(f"safe_fetch failed for {url}: {e}")
+        logger.warning(f"Failed to fetch {url}: {e}")
         return ""
-
 
 def normalize_domain(domain: str) -> str:
     domain = domain.strip().lower()
     domain = re.sub(r"^https?://", "", domain)
     domain = re.sub(r"^www\.", "", domain)
-    return domain.split("/")[0]
+    domain = re.sub(r"/.*$", "", domain)
+    return domain
 
-
-# ---------------------- WHOIS Information ----------------------
-
+# ---------------------- WHOIS ----------------------
 def get_whois_info(domain: str) -> Dict[str, Any]:
     try:
         w = whois.whois(domain)
-
-        def format_date(date_value: Optional[Any]):
-            if not date_value:
-                return "Unknown"
-            if isinstance(date_value, list):
-                date_value = date_value[0]
+        def format_date(d): 
+            if not d: return "Unknown"
+            if isinstance(d, list): d = d[0]
             try:
-                if isinstance(date_value, str):
-                    return date_value
-                return date_value.strftime("%Y-%m-%d")
-            except Exception:
-                return str(date_value)
-
-        registrar = getattr(w, "registrar", None) or "Unknown"
-        creation = format_date(getattr(w, "creation_date", None))
-        expiration = format_date(getattr(w, "expiration_date", None))
-        name_servers = getattr(w, "name_servers", None) or ["Unknown"]
-
+                if isinstance(d, str): return d
+                return d.strftime("%Y-%m-%d")
+            except: return str(d)
         return {
-            "Registrar": registrar,
-            "Created Date": creation,
-            "Expiry Date": expiration,
-            "Name Servers": name_servers,
+            "Registrar": w.registrar or "Unknown",
+            "Created Date": format_date(w.creation_date),
+            "Updated Date": format_date(w.updated_date),
+            "Expiry Date": format_date(w.expiration_date),
+            "Name Servers": w.name_servers or ["Unknown"],
         }
     except Exception as e:
-        logger.warning(f"WHOIS failed for {domain}: {e}")
-        return {"Registrar": "Unknown", "Created Date": "Unknown", "Expiry Date": "Unknown", "Name Servers": ["Unknown"]}
+        logger.error(f"WHOIS failed: {e}")
+        return {"Registrar":"Unknown","Created Date":"Unknown","Updated Date":"Unknown","Expiry Date":"Unknown","Name Servers":["Unknown"]}
 
-
-# ---------------------- Hosting Details ----------------------
-
-def get_hosting_info(domain: str) -> Dict[str, Any]:
-    """
-    Returns IP, server header (sanitized), reverse lookup (PTR) and a guessed provider.
-    We sanitize 'X-Powered-By' or other headers so we don't return 'powered by' strings directly.
-    """
+# ---------------------- Hosting Info ----------------------
+def get_hosting_info(domain: str) -> Dict[str, str]:
     try:
         ip = socket.gethostbyname(domain)
+        try:
+            resp = session.head(f"https://{domain}", timeout=10, verify=False)
+            server = resp.headers.get("Server", "Unknown")
+            powered_by = resp.headers.get("X-Powered-By", "Unknown")
+        except: server, powered_by = "Unknown", "Unknown"
+        server_lower = server.lower()
+        if "cloudflare" in server_lower: provider = "Cloudflare"
+        elif "nginx" in server_lower: provider = "Nginx"
+        elif "apache" in server_lower: provider = "Apache"
+        elif "iis" in server_lower or "microsoft" in server_lower: provider = "Microsoft IIS"
+        elif "litespeed" in server_lower: provider = "LiteSpeed"
+        elif "cpanel" in server_lower: provider = "cPanel"
+        else: provider = "Unknown"
+        return {"IP Address": ip, "Server": server, "Powered By": powered_by, "Hosting Provider": provider}
     except Exception as e:
-        logger.warning(f"DNS resolution failed for {domain}: {e}")
-        return {"IP Address": "Unknown", "Server": "Unknown", "Hosting Provider": "Unknown", "Reverse PTR": "Unknown"}
-
-    server = "Unknown"
-    reverse_ptr = "Unknown"
-    provider = "Unknown"
-
-    # Try reverse DNS PTR
-    try:
-        reverse_ptr = socket.gethostbyaddr(ip)[0]
-    except Exception:
-        reverse_ptr = "Unknown"
-
-    # Try to get headers
-    try:
-        resp = session.head(f"https://{domain}", timeout=6, verify=False)
-        server_header = resp.headers.get("Server") or resp.headers.get("server") or ""
-        x_powered = resp.headers.get("X-Powered-By") or resp.headers.get("x-powered-by") or ""
-
-        # sanitize server header (remove known "powered by" noise and truncate long values)
-        combined_server = (server_header + " " + x_powered).strip()
-        combined_server = re.sub(r"powered by[:\s]*[A-Za-z0-9\-_. ]+", "", combined_server, flags=re.IGNORECASE)
-        combined_server = re.sub(r"\s{2,}", " ", combined_server).strip()
-        if combined_server:
-            # Limit to 120 chars to avoid overly long values
-            server = combined_server[:120]
-
-        # Guess provider from reverse ptr or server header
-        lp = (reverse_ptr + " " + server).lower()
-        if "cloudflare" in lp:
-            provider = "Cloudflare"
-        elif "amazonaws" in lp or "awselb" in lp or "amazon" in lp:
-            provider = "AWS"
-        elif "google" in lp or "googleusercontent" in lp:
-            provider = "Google Cloud"
-        elif "microsoft" in lp or "azure" in lp or "windows" in lp:
-            provider = "Microsoft Azure"
-        elif "digitalocean" in lp:
-            provider = "DigitalOcean"
-        elif "fastly" in lp:
-            provider = "Fastly"
-        elif "akamai" in lp:
-            provider = "Akamai"
-
-    except Exception as e:
-        logger.debug(f"Header fetch failed for hosting info: {e}")
-
-    return {"IP Address": ip, "Server": server or "Unknown", "Hosting Provider": provider, "Reverse PTR": reverse_ptr}
-
+        logger.error(f"Hosting info failed: {e}")
+        return {"IP Address":"Unknown","Server":"Unknown","Powered By":"Unknown","Hosting Provider":"Unknown"}
 
 # ---------------------- Email Detection ----------------------
-
 def get_mx_records(domain: str) -> List[str]:
     try:
-        mx_records = []
-        answers = resolver.resolve(domain, "MX")
-        for rdata in answers:
-            mx_records.append(str(rdata.exchange).rstrip("."))
-        return mx_records
-    except Exception:
+        return [str(r.exchange).rstrip(".") for r in resolver.resolve(domain, "MX")]
+    except Exception as e:
+        logger.warning(f"MX lookup failed for {domain}: {e}")
         return []
 
+def get_txt_records(domain: str) -> List[str]:
+    try:
+        return [str(r) for r in resolver.resolve(domain, "TXT")]
+    except: return []
 
-def detect_email_provider(mx_records: List[str]) -> str:
+def detect_email_provider(mx_records: List[str], txt_records: List[str]) -> str:
+    indicators = []
     for mx in mx_records:
-        mx_lower = mx.lower()
-        if any(k in mx_lower for k in ["google", "googlemail", "gmail"]):
-            return "Google Workspace"
-        elif any(k in mx_lower for k in ["outlook", "protection.outlook", "office365", "hotmail"]):
-            return "Microsoft 365"
-        elif "zoho" in mx_lower:
-            return "Zoho Mail"
-        elif "yahoodns" in mx_lower or "yahoo" in mx_lower:
-            return "Yahoo Mail"
-    return "Custom" if mx_records else "Unknown"
-
+        lmx = mx.lower()
+        if "google" in lmx or "aspmx.l.google.com" in mx: indicators.append("Google Workspace")
+        elif "outlook" in lmx or "protection.outlook" in lmx: indicators.append("Microsoft 365")
+        elif "zoho" in lmx: indicators.append("Zoho Mail")
+        elif "yahoo" in lmx: indicators.append("Yahoo Mail")
+        elif "protonmail" in lmx or "pm.me" in lmx: indicators.append("ProtonMail")
+        elif "fastmail" in lmx: indicators.append("Fastmail")
+    for txt in txt_records:
+        ltxt = txt.lower()
+        if "google-site-verification" in ltxt: indicators.append("Google Workspace")
+        elif "ms=" in ltxt or "microsoft" in ltxt: indicators.append("Microsoft 365")
+        elif "zoho" in ltxt: indicators.append("Zoho Mail")
+    if indicators: return Counter(indicators).most_common(1)[0][0]
+    if mx_records: return "Custom Email Provider"
+    return "No Email Service Detected"
 
 def extract_emails(domain: str) -> List[str]:
     try:
-        html = safe_fetch(f"https://{domain}") or safe_fetch(f"http://{domain}")
-        emails = re.findall(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", html)
-        # return unique, limited list
-        uniq = []
-        for e in emails:
-            if e not in uniq:
-                uniq.append(e)
-            if len(uniq) >= 5:
-                break
-        return uniq
+        pages = [f"https://{domain}", f"https://{domain}/contact", f"https://{domain}/contact-us", f"https://{domain}/about"]
+        all_emails = set()
+        for page in pages:
+            html = safe_fetch(page)
+            if html:
+                emails = re.findall(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', html)
+                valid_emails = [e for e in emails if domain in e and not e.endswith((".png",".jpg"))]
+                all_emails.update(valid_emails)
+        return list(all_emails)[:10]
     except Exception as e:
-        logger.debug(f"extract_emails failed: {e}")
+        logger.warning(f"Email extraction failed: {e}")
         return []
 
-
 # ---------------------- Technology Detection ----------------------
-
 def detect_tech_stack(domain: str) -> Dict[str, List[str]]:
-    """
-    Use builtwith.parse but filter out noisy categories like 'photo galleries' and some JS frameworks
-    if the user requested those to be excluded.
-    """
     try:
-        tech = builtwith.parse(f"https://{domain}") or {}
-        # Remove or shorten noisy categories
-        filtered = {}
-        ignore_keys = ["photo galleries", "image hosting", "javascript libraries", "javascript frameworks"]
-        for k, v in tech.items():
-            kl = k.lower()
-            if any(ik in kl for ik in ignore_keys):
-                continue
-            # limit the number of items for readability
-            filtered[k] = v[:6]
-        return filtered
+        tech_data = builtwith.parse(f"https://{domain}") or {}
+        html = safe_fetch(f"https://{domain}")
+        if html:
+            html_l = html.lower()
+            if "react" in html_l: tech_data.setdefault("javascript-frameworks",[]).append("React")
+            if "vue" in html_l: tech_data.setdefault("javascript-frameworks",[]).append("Vue.js")
+            if "angular" in html_l: tech_data.setdefault("javascript-frameworks",[]).append("Angular")
+            if "jquery" in html_l: tech_data.setdefault("javascript-frameworks",[]).append("jQuery")
+        return tech_data
     except Exception as e:
-        logger.debug(f"builtwith failed: {e}")
+        logger.error(f"Tech stack detection failed: {e}")
         return {}
 
-
-# ---------------------- Improved WordPress Detection ----------------------
-
+# ---------------------- WordPress Detection ----------------------
 def detect_wordpress(domain: str) -> Dict[str, Any]:
-    wp_info = {"Is WordPress": False, "Version": None, "Theme": None, "Detection Evidence": []}
-
+    wp_info = {"Is WordPress":"No","Version":"Not Detected","Theme":"Not Detected","Plugins":[],"Page Builder":"Not Detected"}
     try:
-        html = safe_fetch(f"https://{domain}") or safe_fetch(f"http://{domain}")
-        if not html:
-            return wp_info
-
-        lower_html = html.lower()
-
-        # Common indicators
-        indicators = {
-            "wp-json": "/wp-json/",
-            "wp-content": "wp-content",
-            "wp-includes": "wp-includes",
-            "xmlrpc": "xmlrpc.php",
-            "readme": "/readme.html",
-            "wp-admin": "wp-admin",
-        }
-
-        found = 0
-        for k, sig in indicators.items():
-            if sig in lower_html:
-                wp_info["Detection Evidence"].append(sig)
-                found += 1
-
-        # Check wp-json endpoint (best evidence)
-        try:
-            wpjson = session.get(f"https://{domain}/wp-json/", timeout=6, verify=False)
-            if wpjson.status_code == 200 and "namespaces" in wpjson.text.lower():
-                wp_info["Is WordPress"] = True
-                wp_info["Detection Evidence"].append("/wp-json/")
-                # Try to extract version from wp-json (if present)
-                try:
-                    jsonb = wpjson.json()
-                    # Theme or version might be under 'generator' or similar fields
-                    # Many sites expose generator meta instead; we'll still look at homepage
-                    version = jsonb.get("version") or jsonb.get("generator")
-                    if version:
-                        wp_info["Version"] = str(version)
-                except Exception:
-                    pass
-        except Exception:
-            pass
-
-        # Meta generator tag
-        try:
-            soup = BeautifulSoup(html, "html.parser")
-            generator = soup.find("meta", attrs={"name": "generator"})
-            if generator and "wordpress" in generator.get("content", "").lower():
-                wp_info["Is WordPress"] = True
-                gen = generator.get("content", "")
-                ver_match = re.search(r"([0-9]+\.[0-9]+(?:\.[0-9]+)?)", gen)
-                if ver_match:
-                    wp_info["Version"] = ver_match.group(1)
-                wp_info["Detection Evidence"].append("meta:generator")
-        except Exception:
-            pass
-
-        # Look for theme in CSS references
-        try:
-            theme_match = re.search(r"/wp-content/themes/([^/\s]+)/", html, re.IGNORECASE)
-            if theme_match:
-                wp_info["Theme"] = theme_match.group(1)
-                wp_info["Is WordPress"] = True
-                wp_info["Detection Evidence"].append("themes/style")
-        except Exception:
-            pass
-
-        # If several indicators present, mark as WordPress
-        if found >= 2:
-            wp_info["Is WordPress"] = True
-
-        # Final cleanup: convert boolean to Yes/No for user-friendly output
-        if wp_info["Is WordPress"]:
-            wp_info["Is WordPress"] = "Yes"
-            wp_info["Version"] = wp_info["Version"] or "Not Detected"
-            wp_info["Theme"] = wp_info["Theme"] or "Not Detected"
-        else:
-            wp_info["Is WordPress"] = "No"
-            wp_info["Version"] = "Not Detected"
-            wp_info["Theme"] = "Not Detected"
-
+        base_url = f"https://{domain}"
+        html = safe_fetch(base_url)
+        if not html: return wp_info
+        html_l = html.lower()
+        wp_signatures = ["wp-content","wp-includes","wp-json","wp-admin","wp-login.php","xmlrpc.php"]
+        if any(sig in html_l for sig in wp_signatures): wp_info["Is WordPress"]="Yes"
+        # Detect version
+        version_patterns = [r'content=["\']WordPress\s*([0-9]+\.[0-9]+(?:\.[0-9]+)?)["\']',
+                            r'wp-embed\.min\.js\?ver=([0-9]+\.[0-9]+(?:\.[0-9]+)?)',
+                            r'wp-includes/js/wp-embed\.js\?ver=([0-9]+\.[0-9]+(?:\.[0-9]+)?)']
+        for pattern in version_patterns:
+            m = re.search(pattern, html_l, re.IGNORECASE)
+            if m: wp_info["Version"]=m.group(1); break
+        # Detect theme
+        theme_match = re.search(r"/wp-content/themes/([^/]+)/", html_l)
+        if theme_match: wp_info["Theme"]=theme_match.group(1).replace("-"," ").title()
+        # Plugins
+        plugins = re.findall(r"/wp-content/plugins/([^/]+)/", html_l)
+        if plugins: wp_info["Plugins"] = sorted(list(set([p.replace("-", " ").title() for p in plugins])))[:10]
+        # Page Builders
+        builders = {"Elementor":["elementor"],"Divi":["et_pb"],"WPBakery":["vc_row"],"Oxygen":["ct_builder"]}
+        for b, keys in builders.items():
+            if any(k in html_l for k in keys):
+                wp_info["Page Builder"]=b
+                break
     except Exception as e:
-        logger.debug(f"WordPress detection error for {domain}: {e}")
-
+        logger.error(f"WordPress detection error: {e}")
     return wp_info
 
-
-# ---------------------- Improved Ads Detection ----------------------
-
-def detect_ads(domain: str) -> List[str]:
+# ---------------------- Ads Detection ----------------------
+def detect_ads(domain: str) -> Dict[str, Any]:
+    result = {"ad_networks":[],"analytics_tools":[],"tracking_scripts":[],"social_media_pixels":[]}
     try:
-        html = safe_fetch(f"https://{domain}") or safe_fetch(f"http://{domain}")
-        if not html:
-            return ["Unable to scan website"]
-
-        found_ads = set()
-
-        # Major ad and analytics networks
-        ad_networks = {
-            "Google Ads": [
-                r"googlesyndication\.com",
-                r"doubleclick\.net",
-                r"googleadservices\.com",
-                r"adsbygoogle",
-                r"pagead2\.googlesyndication",
-            ],
-            "Google Analytics": [
-                r"google-analytics\.com",
-                r"gtag\(",
-                r"ga\(",
-                r"googletagmanager\.com/gtag/js",
-            ],
-            "Google Tag Manager": [
-                r"googletagmanager\.com/gtm\.js",
-                r"googletagmanager\.com/ns\.html",
-            ],
-            "Facebook Pixel": [
-                r"connect\.facebook\.net",
-                r"fbq\(",
-                r"facebook\.com/tr",
-            ],
-            "Microsoft Advertising": [
-                r"bat\.bing\.com",
-                r"bing\.com/ads",
-            ],
-            "Amazon Ads": [
-                r"amazon-adsystem\.com",
-                r"assoc-amazon\.com",
-            ],
-            "LinkedIn Insight": [
-                r"linkedin\.com/li\.js",
-                r"linkedin\.com/px",
-            ],
-            "Twitter Ads": [
-                r"ads-twitter\.com",
-                r"analytics\.twitter\.com",
-            ],
-            "Pinterest Tag": [
-                r"ct\.pinterest\.com",
-                r"pinterest\.com/tag",
-            ],
-            "TikTok Pixel": [
-                r"tiktok\.com/i18n/pixel",
-                r"analytics\.tiktok\.com",
-            ],
+        html = safe_fetch(f"https://{domain}")
+        if not html: return {"error":"Unable to scan website"}
+        soup = BeautifulSoup(html,"html.parser")
+        all_scripts = [s.get("src") for s in soup.find_all("script",src=True)]
+        all_scripts += [s.string for s in soup.find_all("script") if s.string]
+        all_scripts += [img.get("src") for img in soup.find_all("img",src=True)]
+        all_scripts += [iframe.get("src") for iframe in soup.find_all("iframe",src=True)]
+        # Ad patterns
+        ad_patterns = {
+            "Google Ads":["googlesyndication.com","doubleclick.net","googleadservices.com","adsbygoogle"],
+            "Amazon Ads":["amazon-adsystem.com","assoc-amazon.com"],
+            "Media.net":["media.net","contextual.media.net"]
         }
-
-        soup = BeautifulSoup(html, "html.parser")
-
-        # 🔍 Check external <script> and <iframe> sources
-        for tag in soup.find_all(["script", "iframe"]):
-            src = tag.get("src") or tag.get("data-src") or ""
-            if src:
-                for network, patterns in ad_networks.items():
-                    if any(re.search(p, src, re.IGNORECASE) for p in patterns):
-                        found_ads.add(network)
-
-        # 🔍 Check inline scripts and entire HTML body
-        for network, patterns in ad_networks.items():
-            if any(re.search(p, html, re.IGNORECASE) for p in patterns):
-                found_ads.add(network)
-
-        # ✅ Clean, sorted results
-        if found_ads:
-            return sorted(list(found_ads))
-        return ["No advertising networks detected"]
-
+        analytics_patterns = {
+            "Google Analytics":["google-analytics.com","gtag("],
+            "Google Tag Manager":["googletagmanager.com/gtm.js"],
+            "Facebook Pixel":["connect.facebook.net","fbq("]
+        }
+        social_pixels = {
+            "Facebook Pixel":"facebook.com/tr",
+            "LinkedIn Insight":"linkedin.com/li.js",
+            "TikTok Pixel":"tiktok.com/i18n/pixel"
+        }
+        detected_ads, detected_analytics, detected_pixels = set(), set(), set()
+        for network, patterns in ad_patterns.items():
+            if any(any(re.search(p, str(script), re.IGNORECASE) for script in all_scripts) for p in patterns):
+                detected_ads.add(network)
+        for tool, patterns in analytics_patterns.items():
+            if any(any(re.search(p, str(script), re.IGNORECASE) for script in all_scripts) for p in patterns):
+                detected_analytics.add(tool)
+        for platform, pattern in social_pixels.items():
+            if any(re.search(pattern,str(script),re.IGNORECASE) for script in all_scripts):
+                detected_pixels.add(platform)
+        result["ad_networks"]=list(detected_ads)
+        result["analytics_tools"]=list(detected_analytics)
+        result["social_media_pixels"]=list(detected_pixels)
+        result["tracking_scripts"]=list(detected_ads | detected_analytics | detected_pixels)
     except Exception as e:
-        logger.warning(f"Ad detection failed for {domain}: {e}")
-        return ["Ad detection failed"]
+        logger.error(f"Ads detection failed: {e}")
+        result["error"]=f"Ads detection failed: {e}"
+    return result
 
-# ---------------------- Security Audit ----------------------
-
-def audit_security(domain: str) -> Dict[str, Any]:
-    security = {
-        "SSL Certificate": "Invalid",
-        "SSL Expires": "Unknown",
-        "HSTS": "Not Found",
-        "X-Frame-Options": "Not Found",
-        "X-Content-Type-Options": "Not Found",
-        "Content-Security-Policy": "Not Found",
-    }
-
-    # Check TLS certificate validity and expiry
+# ---------------------- Security ----------------------
+def audit_security(domain: str) -> Dict[str,str]:
+    sec = {"SSL Certificate":"Not Found","SSL Expiry":"Unknown","HSTS":"Not Found",
+           "X-Frame-Options":"Not Found","X-Content-Type-Options":"Not Found",
+           "Content-Security-Policy":"Not Found","Referrer-Policy":"Not Found"}
     try:
-        ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-        with socket.create_connection((domain, 443), timeout=6) as sock:
-            with ctx.wrap_socket(sock, server_hostname=domain) as ssock:
-                cert = ssock.getpeercert()
-                if cert:
-                    security["SSL Certificate"] = "Valid"
-                    # try to extract notAfter
-                    not_after = cert.get("notAfter")
-                    if not_after:
-                        # example format: 'Jun  1 12:00:00 2026 GMT'
-                        try:
-                            expires = datetime.strptime(not_after, "%b %d %H:%M:%S %Y %Z")
-                            security["SSL Expires"] = expires.strftime("%Y-%m-%d")
-                            # check expiry
-                            days_left = (expires - datetime.utcnow()).days
-                            security["SSL Days Left"] = max(days_left, 0)
-                        except Exception:
-                            security["SSL Expires"] = str(not_after)
-
+        context = ssl.create_default_context()
+        context.check_hostname=False
+        context.verify_mode=ssl.CERT_NONE
+        with socket.create_connection((domain,443),timeout=10) as sock:
+            with context.wrap_socket(sock,server_hostname=domain) as ssock:
+                cert=ssock.getpeercert()
+                if cert: sec["SSL Certificate"]="Valid"
+                if "notAfter" in cert:
+                    exp_date=datetime.strptime(cert["notAfter"],'%b %d %H:%M:%S %Y %Z')
+                    sec["SSL Expiry"]=f"{(exp_date-datetime.now()).days} days"
+        resp = session.get(f"https://{domain}",timeout=10,verify=False)
+        headers = resp.headers
+        for key,hdr in {"HSTS":"Strict-Transport-Security","X-Frame-Options":"X-Frame-Options",
+                        "X-Content-Type-Options":"X-Content-Type-Options",
+                        "Content-Security-Policy":"Content-Security-Policy",
+                        "Referrer-Policy":"Referrer-Policy"}.items():
+            sec[key] = "Present" if headers.get(hdr) else "Not Found"
     except Exception as e:
-        logger.debug(f"Certificate check failed for {domain}: {e}")
+        logger.warning(f"Security audit issue: {e}")
+    return sec
 
-    # Check security headers
+# ---------------------- Performance ----------------------
+def analyze_performance(domain: str) -> Dict[str,Any]:
     try:
-        resp = session.get(f"https://{domain}", timeout=6, verify=False)
-        headers = {k.lower(): v for k, v in resp.headers.items()}
-        if "strict-transport-security" in headers:
-            security["HSTS"] = "Present"
-        if "x-frame-options" in headers:
-            security["X-Frame-Options"] = "Present"
-        if "x-content-type-options" in headers:
-            security["X-Content-Type-Options"] = "Present"
-        if "content-security-policy" in headers:
-            security["Content-Security-Policy"] = "Present"
+        start=time.time()
+        resp=session.get(f"https://{domain}",timeout=15,verify=False)
+        load_time=time.time()-start
+        page_size=len(resp.content)/1024
+        header_size=len(str(resp.headers).encode("utf-8"))/1024
+        if load_time<1.0: score="Excellent"
+        elif load_time<2.5: score="Good"
+        elif load_time<4.0: score="Average"
+        else: score="Poor"
+        return {"Load Time":f"{load_time:.2f}s","Page Size":f"{page_size:.1f} KB",
+                "Headers Size":f"{header_size:.1f} KB","Total Size":f"{page_size+header_size:.1f} KB",
+                "Score":score,"Status":resp.status_code}
+    except:
+        return {"Load Time":"Failed","Page Size":"Unknown","Headers Size":"Unknown",
+                "Total Size":"Unknown","Score":"Unknown","Status":"Unknown"}
 
-        # Check cookies for secure & httpOnly flags (if any set in headers)
-        set_cookie = resp.headers.get("Set-Cookie")
-        if set_cookie:
-            security["Cookies"] = set_cookie
-    except Exception as e:
-        logger.debug(f"Security headers check failed: {e}")
-
-    return security
-
-
-# ---------------------- Performance Analysis ----------------------
-
-def analyze_performance(domain: str) -> Dict[str, Any]:
-    try:
-        start_time = time.time()
-        # make a HEAD first to avoid downloading large bodies
-        try:
-            head = session.head(f"https://{domain}", timeout=6, verify=False)
-            status = head.status_code
-            content_length = head.headers.get("Content-Length")
-            if content_length:
-                page_size_kb = int(content_length) / 1024
-            else:
-                # fallback to GET
-                resp = session.get(f"https://{domain}", timeout=10, verify=False)
-                status = resp.status_code
-                page_size_kb = len(resp.content) / 1024
-        except Exception:
-            resp = session.get(f"https://{domain}", timeout=10, verify=False)
-            status = resp.status_code
-            page_size_kb = len(resp.content) / 1024
-
-        load_time = time.time() - start_time
-
-        if load_time < 1.5:
-            score = "Excellent"
-        elif load_time < 3.0:
-            score = "Good"
-        elif load_time < 5.0:
-            score = "Average"
-        else:
-            score = "Poor"
-
-        return {"Load Time": f"{load_time:.2f}s", "Page Size": f"{page_size_kb:.1f} KB", "Score": score, "Status": status}
-    except Exception as e:
-        logger.debug(f"Performance analysis failed for {domain}: {e}")
-        return {"Load Time": "Failed to measure", "Page Size": "Unknown", "Score": "Unknown", "Status": "Unknown"}
-
-
-# ---------------------- Routes ----------------------
-
+# ---------------------- API Endpoints ----------------------
 @app.get("/")
 def home():
-    return {"message": "Domain Audit API", "version": "2.3"}
-
+    return {"message":"Domain Audit API","version":"2.5","status":"active"}
 
 @app.get("/audit/{domain}")
 def audit_domain(domain: str):
-    domain = normalize_domain(domain)
-    if not domain:
-        return JSONResponse({"error": "Invalid domain"}, status_code=400)
-
-    mx_records = get_mx_records(domain)
-
-    results = {
-        "Domain": domain,
-        "Domain Info": get_whois_info(domain),
-        "Hosting": get_hosting_info(domain),
-        "Email Setup": {
-            "Provider": detect_email_provider(mx_records),
-            "MX Records": mx_records,
-            "Contact Emails": extract_emails(domain),
+    start_time=time.time()
+    domain=normalize_domain(domain)
+    if not domain or len(domain)<3:
+        return JSONResponse({"error":"Invalid domain"},status_code=400)
+    mx=get_mx_records(domain)
+    txt=get_txt_records(domain)
+    results={
+        "Domain":domain,
+        "Domain Info":get_whois_info(domain),
+        "Hosting":get_hosting_info(domain),
+        "Email Setup":{
+            "Provider":detect_email_provider(mx,txt),
+            "MX Records":mx,
+            "TXT Records":txt,
+            "Contact Emails":extract_emails(domain)
         },
-        "Website Tech": detect_tech_stack(domain),
-        "WordPress": detect_wordpress(domain),
-        "Ads Running": detect_ads(domain),
-        "Security": audit_security(domain),
-        "Performance": analyze_performance(domain),
-        "Audit Date": datetime.now().strftime("%B %d, %Y at %I:%M %p"),
+        "Website Tech":detect_tech_stack(domain),
+        "WordPress":detect_wordpress(domain),
+        "Advertising":detect_ads(domain),
+        "Security":audit_security(domain),
+        "Performance":analyze_performance(domain),
+        "Audit Date":datetime.now().strftime("%B %d, %Y at %I:%M %p"),
+        "Processing Time":f"{time.time()-start_time:.2f}s"
     }
-
     return JSONResponse(results)
-
 
 @app.get("/health")
 def health_check():
-    return {"status": "healthy"}
+    return {"status":"healthy","timestamp":datetime.now().isoformat()}
 
+@app.get("/test/{domain}")
+def test_domain(domain: str):
+    domain=normalize_domain(domain)
+    return {
+        "domain":domain,
+        "wordpress":detect_wordpress(domain),
+        "ads":detect_ads(domain),
+        "email":{"mx":get_mx_records(domain),"txt":get_txt_records(domain)}
+    }
 
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
