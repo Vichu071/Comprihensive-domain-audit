@@ -8,50 +8,36 @@ import requests
 from bs4 import BeautifulSoup
 import re
 import logging
-import os
-from requests.adapters import HTTPAdapter, Retry
-import ssl
 import socket
+import ssl
 from typing import Dict, List, Any
-import time
-import urllib3
 from datetime import datetime
 from collections import Counter
+import time
 
-# ---------------------- Basic Setup ----------------------
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+# ---------------------- Setup ----------------------
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("domain-audit")
 
-app = FastAPI(title="Domain Audit API", version="2.5")
+app = FastAPI(title="Ultimate Domain Audit API", version="3.0")
 app.add_middleware(
     CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
 )
 
-# ---------------------- DNS Resolver ----------------------
 resolver = dns.resolver.Resolver()
 resolver.nameservers = ["8.8.8.8", "1.1.1.1", "8.8.4.4", "1.0.0.1"]
 resolver.timeout = 10
 resolver.lifetime = 10
 
-# ---------------------- Requests Session ----------------------
 session = requests.Session()
-retries = Retry(total=3, backoff_factor=1, status_forcelist=[500, 502, 503, 504])
-session.mount("http://", HTTPAdapter(max_retries=retries))
-session.mount("https://", HTTPAdapter(max_retries=retries))
+session.headers.update({
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+})
 
-# ---------------------- Utility Functions ----------------------
+# ---------------------- Utilities ----------------------
 def safe_fetch(url: str, timeout: int = 15) -> str:
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Connection": "keep-alive",
-        "Upgrade-Insecure-Requests": "1",
-    }
     try:
-        resp = session.get(url, headers=headers, timeout=timeout, verify=False, allow_redirects=True)
+        resp = session.get(url, timeout=timeout, verify=False, allow_redirects=True)
         resp.raise_for_status()
         return resp.text
     except Exception as e:
@@ -69,7 +55,7 @@ def normalize_domain(domain: str) -> str:
 def get_whois_info(domain: str) -> Dict[str, Any]:
     try:
         w = whois.whois(domain)
-        def format_date(d): 
+        def format_date(d):
             if not d: return "Unknown"
             if isinstance(d, list): d = d[0]
             try:
@@ -81,21 +67,23 @@ def get_whois_info(domain: str) -> Dict[str, Any]:
             "Created Date": format_date(w.creation_date),
             "Updated Date": format_date(w.updated_date),
             "Expiry Date": format_date(w.expiration_date),
-            "Name Servers": w.name_servers or ["Unknown"],
+            "Name Servers": w.name_servers or ["Unknown"]
         }
     except Exception as e:
         logger.error(f"WHOIS failed: {e}")
         return {"Registrar":"Unknown","Created Date":"Unknown","Updated Date":"Unknown","Expiry Date":"Unknown","Name Servers":["Unknown"]}
 
-# ---------------------- Hosting Info ----------------------
+# ---------------------- Hosting ----------------------
 def get_hosting_info(domain: str) -> Dict[str, str]:
     try:
         ip = socket.gethostbyname(domain)
+        server, powered_by = "Unknown", "Unknown"
         try:
             resp = session.head(f"https://{domain}", timeout=10, verify=False)
             server = resp.headers.get("Server", "Unknown")
             powered_by = resp.headers.get("X-Powered-By", "Unknown")
-        except: server, powered_by = "Unknown", "Unknown"
+        except:
+            pass
         server_lower = server.lower()
         if "cloudflare" in server_lower: provider = "Cloudflare"
         elif "nginx" in server_lower: provider = "Nginx"
@@ -109,7 +97,7 @@ def get_hosting_info(domain: str) -> Dict[str, str]:
         logger.error(f"Hosting info failed: {e}")
         return {"IP Address":"Unknown","Server":"Unknown","Powered By":"Unknown","Hosting Provider":"Unknown"}
 
-# ---------------------- Email Detection ----------------------
+# ---------------------- Email ----------------------
 def get_mx_records(domain: str) -> List[str]:
     try:
         return [str(r.exchange).rstrip(".") for r in resolver.resolve(domain, "MX")]
@@ -120,7 +108,8 @@ def get_mx_records(domain: str) -> List[str]:
 def get_txt_records(domain: str) -> List[str]:
     try:
         return [str(r) for r in resolver.resolve(domain, "TXT")]
-    except: return []
+    except:
+        return []
 
 def detect_email_provider(mx_records: List[str], txt_records: List[str]) -> str:
     indicators = []
@@ -142,21 +131,17 @@ def detect_email_provider(mx_records: List[str], txt_records: List[str]) -> str:
     return "No Email Service Detected"
 
 def extract_emails(domain: str) -> List[str]:
-    try:
-        pages = [f"https://{domain}", f"https://{domain}/contact", f"https://{domain}/contact-us", f"https://{domain}/about"]
-        all_emails = set()
-        for page in pages:
-            html = safe_fetch(page)
-            if html:
-                emails = re.findall(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', html)
-                valid_emails = [e for e in emails if domain in e and not e.endswith((".png",".jpg"))]
-                all_emails.update(valid_emails)
-        return list(all_emails)[:10]
-    except Exception as e:
-        logger.warning(f"Email extraction failed: {e}")
-        return []
+    pages = [f"https://{domain}", f"https://{domain}/contact", f"https://{domain}/contact-us", f"https://{domain}/about"]
+    all_emails = set()
+    for page in pages:
+        html = safe_fetch(page)
+        if html:
+            emails = re.findall(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', html)
+            valid_emails = [e for e in emails if domain in e and not e.endswith((".png",".jpg",".jpeg"))]
+            all_emails.update(valid_emails)
+    return list(all_emails)[:10]
 
-# ---------------------- Technology Detection ----------------------
+# ---------------------- Tech Stack ----------------------
 def detect_tech_stack(domain: str) -> Dict[str, List[str]]:
     try:
         tech_data = builtwith.parse(f"https://{domain}") or {}
@@ -172,24 +157,22 @@ def detect_tech_stack(domain: str) -> Dict[str, List[str]]:
         logger.error(f"Tech stack detection failed: {e}")
         return {}
 
-# ---------------------- WordPress Detection ----------------------
+# ---------------------- WordPress ----------------------
 def detect_wordpress(domain: str) -> Dict[str, Any]:
     wp_info = {"Is WordPress":"No","Version":"Not Detected","Theme":"Not Detected","Plugins":[],"Page Builder":"Not Detected"}
     try:
-        base_url = f"https://{domain}"
-        html = safe_fetch(base_url)
+        html = safe_fetch(f"https://{domain}")
         if not html: return wp_info
         html_l = html.lower()
         wp_signatures = ["wp-content","wp-includes","wp-json","wp-admin","wp-login.php","xmlrpc.php"]
         if any(sig in html_l for sig in wp_signatures): wp_info["Is WordPress"]="Yes"
-        # Detect version
+        # Version
         version_patterns = [r'content=["\']WordPress\s*([0-9]+\.[0-9]+(?:\.[0-9]+)?)["\']',
-                            r'wp-embed\.min\.js\?ver=([0-9]+\.[0-9]+(?:\.[0-9]+)?)',
-                            r'wp-includes/js/wp-embed\.js\?ver=([0-9]+\.[0-9]+(?:\.[0-9]+)?)']
+                            r'wp-embed\.min\.js\?ver=([0-9]+\.[0-9]+(?:\.[0-9]+)?)']
         for pattern in version_patterns:
             m = re.search(pattern, html_l, re.IGNORECASE)
             if m: wp_info["Version"]=m.group(1); break
-        # Detect theme
+        # Theme
         theme_match = re.search(r"/wp-content/themes/([^/]+)/", html_l)
         if theme_match: wp_info["Theme"]=theme_match.group(1).replace("-"," ").title()
         # Plugins
@@ -205,7 +188,7 @@ def detect_wordpress(domain: str) -> Dict[str, Any]:
         logger.error(f"WordPress detection error: {e}")
     return wp_info
 
-# ---------------------- Ads Detection ----------------------
+# ---------------------- Ads & Analytics ----------------------
 def detect_ads(domain: str) -> Dict[str, Any]:
     result = {"ad_networks":[],"analytics_tools":[],"tracking_scripts":[],"social_media_pixels":[]}
     try:
@@ -216,11 +199,10 @@ def detect_ads(domain: str) -> Dict[str, Any]:
         all_scripts += [s.string for s in soup.find_all("script") if s.string]
         all_scripts += [img.get("src") for img in soup.find_all("img",src=True)]
         all_scripts += [iframe.get("src") for iframe in soup.find_all("iframe",src=True)]
-        # Ad patterns
         ad_patterns = {
-            "Google Ads":["googlesyndication.com","doubleclick.net","googleadservices.com","adsbygoogle"],
-            "Amazon Ads":["amazon-adsystem.com","assoc-amazon.com"],
-            "Media.net":["media.net","contextual.media.net"]
+            "Google Ads":["googlesyndication.com","doubleclick.net","adsbygoogle"],
+            "Amazon Ads":["amazon-adsystem.com"],
+            "Media.net":["media.net"]
         }
         analytics_patterns = {
             "Google Analytics":["google-analytics.com","gtag("],
@@ -297,10 +279,10 @@ def analyze_performance(domain: str) -> Dict[str,Any]:
         return {"Load Time":"Failed","Page Size":"Unknown","Headers Size":"Unknown",
                 "Total Size":"Unknown","Score":"Unknown","Status":"Unknown"}
 
-# ---------------------- API Endpoints ----------------------
+# ---------------------- API ----------------------
 @app.get("/")
 def home():
-    return {"message":"Domain Audit API","version":"2.5","status":"active"}
+    return {"message":"Ultimate Domain Audit API","version":"3.0","status":"active"}
 
 @app.get("/audit/{domain}")
 def audit_domain(domain: str):
@@ -333,16 +315,6 @@ def audit_domain(domain: str):
 @app.get("/health")
 def health_check():
     return {"status":"healthy","timestamp":datetime.now().isoformat()}
-
-@app.get("/test/{domain}")
-def test_domain(domain: str):
-    domain=normalize_domain(domain)
-    return {
-        "domain":domain,
-        "wordpress":detect_wordpress(domain),
-        "ads":detect_ads(domain),
-        "email":{"mx":get_mx_records(domain),"txt":get_txt_records(domain)}
-    }
 
 if __name__ == "__main__":
     import uvicorn
