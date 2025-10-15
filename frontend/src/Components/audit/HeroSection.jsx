@@ -7,12 +7,13 @@ const HeroSection = ({ onAudit, loading }) => {
 
   // Initialize particles
   useEffect(() => {
-    const temp = Array.from({ length: 50 }).map(() => ({
+    const count = window.innerWidth < 600 ? 25 : 50; // fewer particles on small screens
+    const temp = Array.from({ length: count }).map(() => ({
       x: Math.random() * window.innerWidth,
       y: Math.random() * window.innerHeight,
-      size: Math.random() * 4 + 1,
-      speedX: (Math.random() - 0.5) * 0.1, // slower speed
-      speedY: (Math.random() - 0.5) * 0.1, // slower speed
+      size: Math.random() * 3 + 1,
+      speedX: (Math.random() - 0.5) * 0.15,
+      speedY: (Math.random() - 0.5) * 0.15,
     }));
     particles.current = temp;
   }, []);
@@ -33,23 +34,20 @@ const HeroSection = ({ onAudit, loading }) => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       particles.current.forEach(p => {
-        // Move particle
         p.x += p.speedX;
         p.y += p.speedY;
 
-        // Wrap around edges
         if (p.x < 0) p.x = canvas.width;
         if (p.x > canvas.width) p.x = 0;
         if (p.y < 0) p.y = canvas.height;
         if (p.y > canvas.height) p.y = 0;
 
-        // Glow reacts to typing
-        const glowFactor = domain ? 1.3 : 1;
+        const glowFactor = domain ? 1.4 : 1;
 
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(138, 43, 226, ${0.2 * glowFactor})`;
-        ctx.shadowBlur = 8 * glowFactor; // softer glow
+        ctx.fillStyle = `rgba(138, 43, 226, ${0.25 * glowFactor})`;
+        ctx.shadowBlur = 8 * glowFactor;
         ctx.shadowColor = 'rgba(138, 43, 226, 0.5)';
         ctx.fill();
       });
@@ -84,6 +82,8 @@ const HeroSection = ({ onAudit, loading }) => {
           align-items: center;
           justify-content: flex-start;
           padding-top: 120px;
+          padding-left: 1rem;
+          padding-right: 1rem;
           font-family: 'Inter Tight', sans-serif;
           background: linear-gradient(135deg, #1b0032, #3a006e, #0a0011);
         }
@@ -101,6 +101,7 @@ const HeroSection = ({ onAudit, loading }) => {
           position: relative;
           z-index: 2;
           max-width: 900px;
+          width: 100%;
           padding: 0 1rem;
         }
 
@@ -110,6 +111,11 @@ const HeroSection = ({ onAudit, loading }) => {
           line-height: 1.1;
           color: #fff;
           margin-bottom: 1rem;
+          word-wrap: break-word;
+        }
+
+        .hero-title span {
+          color: #b580ff;
         }
 
         .hero-subtitle {
@@ -117,6 +123,7 @@ const HeroSection = ({ onAudit, loading }) => {
           color: #ddd;
           max-width: 700px;
           margin: 0 auto 2rem;
+          line-height: 1.6;
         }
 
         .scrolling-text {
@@ -148,6 +155,7 @@ const HeroSection = ({ onAudit, loading }) => {
           display: flex;
           justify-content: center;
           margin-top: 2rem;
+          width: 100%;
         }
 
         .input-container {
@@ -155,7 +163,7 @@ const HeroSection = ({ onAudit, loading }) => {
           align-items: center;
           background: #ffffff;
           border-radius: 15px;
-          padding: 1rem 1.5rem;
+          padding: 1rem 1.2rem;
           width: 100%;
           max-width: 600px;
           box-shadow: 0 10px 25px rgba(0,0,0,0.2);
@@ -186,10 +194,71 @@ const HeroSection = ({ onAudit, loading }) => {
           cursor: pointer;
           margin-left: 1rem;
           transition: all 0.3s ease;
+          white-space: nowrap;
         }
 
         .input-container button:hover {
           background: #7a1fcc;
+        }
+
+        /* ─── RESPONSIVE ─────────────────────────── */
+        @media (max-width: 1024px) {
+          .hero-title { font-size: 3.2rem; }
+          .hero-subtitle { font-size: 1.15rem; }
+          .input-container { max-width: 500px; }
+        }
+
+        @media (max-width: 768px) {
+          .hero {
+            padding-top: 100px;
+          }
+          .hero-title {
+            font-size: 2.5rem;
+            line-height: 1.2;
+          }
+          .hero-subtitle {
+            font-size: 1.1rem;
+            margin-bottom: 1.8rem;
+          }
+          .scroll-item {
+            font-size: 0.9rem;
+            margin: 0 0.6rem;
+          }
+          .input-container {
+            flex-direction: column;
+            align-items: stretch;
+            padding: 0.8rem 1rem;
+            border-radius: 12px;
+          }
+          .input-container input {
+            font-size: 1rem;
+            margin-bottom: 0.6rem;
+          }
+          .input-container button {
+            width: 100%;
+            margin-left: 0;
+            padding: 0.8rem;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .hero-title {
+            font-size: 2rem;
+            margin-bottom: 0.8rem;
+          }
+          .hero-subtitle {
+            font-size: 1rem;
+            line-height: 1.5;
+          }
+          .scrolling-text {
+            margin-bottom: 2rem;
+          }
+          .scroll-item {
+            font-size: 0.85rem;
+          }
+          .input-container {
+            padding: 0.7rem 0.9rem;
+          }
         }
       `}</style>
 
