@@ -69,198 +69,203 @@ const HeroSection = ({ onAudit, loading }) => {
       <canvas ref={canvasRef} className="hero-canvas"></canvas>
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&display=swap');
 
-        .hero {
-          position: relative;
-          overflow: hidden;
-          color: #fff;
-          text-align: center;
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: flex-start;
-          padding-top: 120px;
-          padding-left: 1rem;
-          padding-right: 1rem;
-          font-family: 'Inter Tight', sans-serif;
-          background: linear-gradient(135deg, #1b0032, #3a006e, #0a0011);
-        }
+  .hero {
+    position: relative;
+    overflow: hidden;
+    color: #fff;
+    text-align: center;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 6rem 1rem; /* balanced top-bottom spacing */
+    font-family: 'Inter Tight', sans-serif;
+    background: linear-gradient(135deg, #1b0032, #3a006e, #0a0011);
+  }
 
-        .hero-canvas {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          z-index: 0;
-        }
+  .hero-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+  }
 
-        .hero-content {
-          position: relative;
-          z-index: 2;
-          max-width: 900px;
-          width: 100%;
-          padding: 0 1rem;
-        }
+  .hero-content {
+    position: relative;
+    z-index: 2;
+    max-width: 900px;
+    width: 100%;
+  }
 
-        .hero-title {
-          font-size: 4rem;
-          font-weight: 700;
-          line-height: 1.1;
-          color: #fff;
-          margin-bottom: 1rem;
-          word-wrap: break-word;
-        }
+  .hero-title {
+    font-size: 4rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #fff;
+    margin-bottom: 1rem;
+    word-wrap: break-word;
+  }
 
-        .hero-title span {
-          color: #b580ff;
-        }
+  .hero-title span {
+    color: #b580ff;
+  }
 
-        .hero-subtitle {
-          font-size: 1.3rem;
-          color: #ddd;
-          max-width: 700px;
-          margin: 0 auto 2rem;
-          line-height: 1.6;
-        }
+  .hero-subtitle {
+    font-size: 1.3rem;
+    color: #ddd;
+    max-width: 700px;
+    margin: 0 auto 2rem;
+    line-height: 1.6;
+  }
 
-        .scrolling-text {
-          width: 100%;
-          overflow: hidden;
-          margin-bottom: 3rem;
-        }
+  .scrolling-text {
+    width: 100%;
+    overflow: hidden;
+    margin-bottom: 2.5rem;
+  }
 
-        .scrolling-track {
-          display: flex;
-          white-space: nowrap;
-          animation: scrollLeft 20s linear infinite;
-        }
+  .scrolling-track {
+    display: flex;
+    white-space: nowrap;
+    animation: scrollLeft 20s linear infinite;
+  }
 
-        .scroll-item {
-          font-size: 1rem;
-          font-weight: 500;
-          letter-spacing: 0.5px;
-          opacity: 0.8;
-          margin: 0 1rem;
-        }
+  .scroll-item {
+    font-size: 1rem;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    opacity: 0.8;
+    margin: 0 1rem;
+  }
 
-        @keyframes scrollLeft {
-          from { transform: translateX(0); }
-          to { transform: translateX(-50%); }
-        }
+  @keyframes scrollLeft {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
 
-        .domain-form {
-          display: flex;
-          justify-content: center;
-          margin-top: 2rem;
-          width: 100%;
-        }
+  .domain-form {
+    display: flex;
+    justify-content: center;
+    margin-top: 1.5rem;
+    width: 100%;
+  }
 
-        .input-container {
-          display: flex;
-          align-items: center;
-          background: #ffffff;
-          border-radius: 15px;
-          padding: 1rem 1.2rem;
-          width: 100%;
-          max-width: 600px;
-          box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-          transition: all 0.3s ease;
-        }
+  .input-container {
+    display: flex;
+    align-items: center;
+    background: #ffffff;
+    border-radius: 15px;
+    padding: 1rem 1.2rem;
+    width: 100%;
+    max-width: 600px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+  }
 
-        .input-container input {
-          flex: 1;
-          border: none;
-          outline: none;
-          font-size: 1.2rem;
-          color: #050009;
-          font-weight: 500;
-          background: transparent;
-        }
+  .input-container input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 1.2rem;
+    color: #050009;
+    font-weight: 500;
+    background: transparent;
+  }
 
-        .input-container input::placeholder {
-          color: #888;
-        }
+  .input-container input::placeholder {
+    color: #888;
+  }
 
-        .input-container button {
-          background: #6a0dad;
-          border: none;
-          color: #fff;
-          padding: 0.8rem 2rem;
-          border-radius: 12px;
-          font-weight: 600;
-          cursor: pointer;
-          margin-left: 1rem;
-          transition: all 0.3s ease;
-          white-space: nowrap;
-        }
+  .input-container button {
+    background: #6a0dad;
+    border: none;
+    color: #fff;
+    padding: 0.8rem 2rem;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-left: 1rem;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+  }
 
-        .input-container button:hover {
-          background: #7a1fcc;
-        }
+  .input-container button:hover {
+    background: #7a1fcc;
+  }
 
-        /* ─── RESPONSIVE ─────────────────────────── */
-        @media (max-width: 1024px) {
-          .hero-title { font-size: 3.2rem; }
-          .hero-subtitle { font-size: 1.15rem; }
-          .input-container { max-width: 500px; }
-        }
+  /* ─── RESPONSIVE ─────────────────────────── */
+  @media (max-width: 1024px) {
+    .hero-title { font-size: 3.2rem; }
+    .hero-subtitle { font-size: 1.15rem; }
+    .input-container { max-width: 500px; }
+    .hero { padding: 5rem 1rem; }
+  }
 
-        @media (max-width: 768px) {
-          .hero {
-            padding-top: 100px;
-          }
-          .hero-title {
-            font-size: 2.5rem;
-            line-height: 1.2;
-          }
-          .hero-subtitle {
-            font-size: 1.1rem;
-            margin-bottom: 1.8rem;
-          }
-          .scroll-item {
-            font-size: 0.9rem;
-            margin: 0 0.6rem;
-          }
-          .input-container {
-            flex-direction: column;
-            align-items: stretch;
-            padding: 0.8rem 1rem;
-            border-radius: 12px;
-          }
-          .input-container input {
-            font-size: 1rem;
-            margin-bottom: 0.6rem;
-          }
-          .input-container button {
-            width: 100%;
-            margin-left: 0;
-            padding: 0.8rem;
-          }
-        }
+  @media (max-width: 768px) {
+    .hero {
+      padding: 4.5rem 1rem;
+      justify-content: flex-start; /* prevent too much bottom gap */
+    }
+    .hero-title {
+      font-size: 2.6rem;
+      line-height: 1.2;
+      margin-bottom: 1rem;
+    }
+    .hero-subtitle {
+      font-size: 1.1rem;
+      margin-bottom: 1.8rem;
+    }
+    .scroll-item {
+      font-size: 0.9rem;
+      margin: 0 0.6rem;
+    }
+    .input-container {
+      flex-direction: column;
+      align-items: stretch;
+      padding: 0.8rem 1rem;
+      border-radius: 12px;
+    }
+    .input-container input {
+      font-size: 1rem;
+      margin-bottom: 0.6rem;
+    }
+    .input-container button {
+      width: 100%;
+      margin-left: 0;
+      padding: 0.8rem;
+    }
+  }
 
-        @media (max-width: 480px) {
-          .hero-title {
-            font-size: 2rem;
-            margin-bottom: 0.8rem;
-          }
-          .hero-subtitle {
-            font-size: 1rem;
-            line-height: 1.5;
-          }
-          .scrolling-text {
-            margin-bottom: 2rem;
-          }
-          .scroll-item {
-            font-size: 0.85rem;
-          }
-          .input-container {
-            padding: 0.7rem 0.9rem;
-          }
-        }
-      `}</style>
+  @media (max-width: 480px) {
+    .hero {
+      padding: 4rem 1rem; /* even spacing top and bottom */
+      justify-content: flex-start;
+    }
+    .hero-title {
+      font-size: 2rem;
+      margin-bottom: 0.8rem;
+    }
+    .hero-subtitle {
+      font-size: 1rem;
+      line-height: 1.5;
+      margin-bottom: 1.5rem;
+    }
+    .scrolling-text {
+      margin-bottom: 2rem;
+    }
+    .scroll-item {
+      font-size: 0.85rem;
+    }
+    .input-container {
+      padding: 0.7rem 0.9rem;
+    }
+  }
+`}</style>
 
       <div className="hero-content">
         <h1 className="hero-title">
