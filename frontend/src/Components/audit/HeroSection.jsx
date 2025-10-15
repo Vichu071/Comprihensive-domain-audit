@@ -1,63 +1,78 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from "react";
 
 const HeroSection = ({ onAudit, loading }) => {
-  const [domain, setDomain] = useState('');
+  const [domain, setDomain] = useState("");
+  const [placeholder, setPlaceholder] = useState("");
   const canvasRef = useRef(null);
   const particles = useRef([]);
+  const examples = ["example.com", "engagepro.ai", "google.com", "yourbrand.io", "mysite.tech"];
+  const currentExample = useRef(0);
+  const charIndex = useRef(0);
+  const deleting = useRef(false);
+
+  // Animate placeholder typing
+  useEffect(() => {
+    const typeEffect = () => {
+      const current = examples[currentExample.current];
+      if (!deleting.current) {
+        setPlaceholder(current.slice(0, charIndex.current + 1));
+        charIndex.current++;
+        if (charIndex.current === current.length + 5) deleting.current = true;
+      } else {
+        setPlaceholder(current.slice(0, charIndex.current - 1));
+        charIndex.current--;
+        if (charIndex.current === 0) {
+          deleting.current = false;
+          currentExample.current = (currentExample.current + 1) % examples.length;
+        }
+      }
+    };
+    const interval = setInterval(typeEffect, 150);
+    return () => clearInterval(interval);
+  }, []);
 
   // Initialize particles
   useEffect(() => {
-    const count = window.innerWidth < 600 ? 25 : 50; // fewer particles on small screens
-    const temp = Array.from({ length: count }).map(() => ({
+    const count = window.innerWidth < 600 ? 25 : 60;
+    particles.current = Array.from({ length: count }).map(() => ({
       x: Math.random() * window.innerWidth,
       y: Math.random() * window.innerHeight,
-      size: Math.random() * 3 + 1,
-      speedX: (Math.random() - 0.5) * 0.15,
-      speedY: (Math.random() - 0.5) * 0.15,
+      size: Math.random() * 2 + 1,
+      speedY: Math.random() * -0.1 - 0.02, // slower speed
+      alpha: Math.random() * 0.4 + 0.3,
     }));
-    particles.current = temp;
   }, []);
 
   // Animate particles
   useEffect(() => {
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
 
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
     };
     resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener("resize", resizeCanvas);
 
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      particles.current.forEach(p => {
-        p.x += p.speedX;
+      particles.current.forEach((p) => {
         p.y += p.speedY;
-
-        if (p.x < 0) p.x = canvas.width;
-        if (p.x > canvas.width) p.x = 0;
-        if (p.y < 0) p.y = canvas.height;
-        if (p.y > canvas.height) p.y = 0;
-
-        const glowFactor = domain ? 1.4 : 1;
-
+        if (p.y < -10) p.y = canvas.height + 10;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(138, 43, 226, ${0.25 * glowFactor})`;
-        ctx.shadowBlur = 8 * glowFactor;
-        ctx.shadowColor = 'rgba(138, 43, 226, 0.5)';
+        ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha})`;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = "#ffffff";
         ctx.fill();
       });
-
       requestAnimationFrame(animate);
     };
-    animate();
 
-    return () => window.removeEventListener('resize', resizeCanvas);
-  }, [domain]);
+    animate();
+    return () => window.removeEventListener("resize", resizeCanvas);
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -68,239 +83,243 @@ const HeroSection = ({ onAudit, loading }) => {
     <section className="hero">
       <canvas ref={canvasRef} className="hero-canvas"></canvas>
 
-      <style>{`
-      @import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&display=swap');
-
-  .hero {
-    position: relative;
-    overflow: hidden;
-    color: #fff;
-    text-align: center;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 6rem 1rem; /* balanced top-bottom spacing */
-    font-family: 'Inter Tight', sans-serif;
-    background: linear-gradient(135deg, #1b0032, #3a006e, #0a0011);
-  }
-
-  .hero-canvas {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 0;
-  }
-
-  .hero-content {
-    position: relative;
-    z-index: 2;
-    max-width: 900px;
-    width: 100%;
-  }
-
-  .hero-title {
-    font-size: 4rem;
-    font-weight: 700;
-    line-height: 1.1;
-    color: #fff;
-    margin-bottom: 1rem;
-    word-wrap: break-word;
-  }
-
-  .hero-title span {
-    color: #b580ff;
-  }
-
-  .hero-subtitle {
-    font-size: 1.3rem;
-    color: #ddd;
-    max-width: 700px;
-    margin: 0 auto 2rem;
-    line-height: 1.6;
-  }
-
-  .scrolling-text {
-    width: 100%;
-    overflow: hidden;
-    margin-bottom: 2.5rem;
-  }
-
-  .scrolling-track {
-    display: flex;
-    white-space: nowrap;
-    animation: scrollLeft 20s linear infinite;
-  }
-
-  .scroll-item {
-    font-size: 1rem;
-    font-weight: 500;
-    letter-spacing: 0.5px;
-    opacity: 0.8;
-    margin: 0 1rem;
-  }
-
-  @keyframes scrollLeft {
-    from { transform: translateX(0); }
-    to { transform: translateX(-50%); }
-  }
-
-  .domain-form {
-    display: flex;
-    justify-content: center;
-    margin-top: 1.5rem;
-    width: 100%;
-  }
-
-  .input-container {
-    display: flex;
-    align-items: center;
-    background: #ffffff;
-    border-radius: 15px;
-    padding: 1rem 1.2rem;
-    width: 100%;
-    max-width: 600px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-    transition: all 0.3s ease;
-  }
-
-  .input-container input {
-    flex: 1;
-    border: none;
-    outline: none;
-    font-size: 1.2rem;
-    color: #050009;
-    font-weight: 500;
-    background: transparent;
-  }
-
-  .input-container input::placeholder {
-    color: #888;
-  }
-
-  .input-container button {
-    background: #6a0dad;
-    border: none;
-    color: #fff;
-    padding: 0.8rem 2rem;
-    border-radius: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    margin-left: 1rem;
-    transition: all 0.3s ease;
-    white-space: nowrap;
-  }
-
-  .input-container button:hover {
-    background: #7a1fcc;
-  }
-
-  /* ─── RESPONSIVE ─────────────────────────── */
-  @media (max-width: 1024px) {
-    .hero-title { font-size: 3.2rem; }
-    .hero-subtitle { font-size: 1.15rem; }
-    .input-container { max-width: 500px; }
-    .hero { padding: 5rem 1rem; }
-  }
-
-  @media (max-width: 768px) {
-    .hero {
-      padding: 4.5rem 1rem;
-      justify-content: flex-start; /* prevent too much bottom gap */
-    }
-    .hero-title {
-      font-size: 2.6rem;
-      line-height: 1.2;
-      margin-bottom: 1rem;
-    }
-    .hero-subtitle {
-      font-size: 1.1rem;
-      margin-bottom: 1.8rem;
-    }
-    .scroll-item {
-      font-size: 0.9rem;
-      margin: 0 0.6rem;
-    }
-    .input-container {
-      flex-direction: column;
-      align-items: stretch;
-      padding: 0.8rem 1rem;
-      border-radius: 12px;
-    }
-    .input-container input {
-      font-size: 1rem;
-      margin-bottom: 0.6rem;
-    }
-    .input-container button {
-      width: 100%;
-      margin-left: 0;
-      padding: 0.8rem;
-    }
-  }
-
-  @media (max-width: 480px) {
-    .hero {
-      padding: 4rem 1rem; /* even spacing top and bottom */
-      justify-content: flex-start;
-    }
-    .hero-title {
-      font-size: 2rem;
-      margin-bottom: 0.8rem;
-    }
-    .hero-subtitle {
-      font-size: 1rem;
-      line-height: 1.5;
-      margin-bottom: 1.5rem;
-    }
-    .scrolling-text {
-      margin-bottom: 2rem;
-    }
-    .scroll-item {
-      font-size: 0.85rem;
-    }
-    .input-container {
-      padding: 0.7rem 0.9rem;
-    }
-  }
-`}</style>
-
       <div className="hero-content">
         <h1 className="hero-title">
-          Complete <span>Domain Analysis</span> Tool
+          Explore the <span>DNA</span> of Any Domain
         </h1>
         <p className="hero-subtitle">
-          Get deep insights — WHOIS, Tech Stack, Security, Email, and Performance.
+          EngagePro — AI that audits hosting, tech stack, email setup,
+          WordPress, security, and performance in real time.
         </p>
 
-        <div className="scrolling-text">
-          <div className="scrolling-track">
-            {['WHOIS Data', 'Tech Stack', 'Security Headers', 'Email Setup', 'Performance Metrics'].map((item, i) => (
-              <span key={i} className="scroll-item">{item} •</span>
-            ))}
-            {['WHOIS Data', 'Tech Stack', 'Security Headers', 'Email Setup', 'Performance Metrics'].map((item, i) => (
-              <span key={`r${i}`} className="scroll-item">{item} •</span>
-            ))}
-          </div>
-        </div>
-
         <form onSubmit={handleSubmit} className="domain-form">
-          <div className="input-container">
+          <div className={`input-container ${domain.length > 0 ? "active-glow" : ""}`}>
             <input
               type="text"
               value={domain}
               onChange={(e) => setDomain(e.target.value)}
-              placeholder="Enter domain (e.g., example.com)"
+              placeholder={placeholder}
               disabled={loading}
             />
             <button type="submit" disabled={loading || !domain.trim()}>
-              {loading ? 'Auditing...' : 'Start Audit'}
+              {loading ? "Analyzing..." : "Analyze"}
             </button>
           </div>
         </form>
+
+        <div className="scrolling-text">
+          <div className="scrolling-track">
+            {[
+              "WHOIS Data",
+              "Tech Stack",
+              "Security Headers",
+              "Email Setup",
+              "Performance Metrics",
+              "Hosting Details",
+              "SSL & Expiry",
+            ].map((item, i) => (
+              <span key={i} className="scroll-item">
+                {item} •
+              </span>
+            ))}
+            {[
+              "WHOIS Data",
+              "Tech Stack",
+              "Security Headers",
+              "Email Setup",
+              "Performance Metrics",
+              "Hosting Details",
+              "SSL & Expiry",
+            ].map((item, i) => (
+              <span key={`r${i}`} className="scroll-item">
+                {item} •
+              </span>
+            ))}
+          </div>
+        </div>
       </div>
+
+      {/* Curved bottom edge with spacing */}
+      <div className="hero-bottom-curve">
+        <svg
+          viewBox="0 0 1440 320"
+          xmlns="http://www.w3.org/2000/svg"
+          preserveAspectRatio="none"
+        >
+          <path
+            fill="#ffffff"
+            d="M0,288L48,266.7C96,245,192,203,288,197.3C384,192,480,224,576,224C672,224,768,192,864,181.3C960,171,1056,181,1152,186.7C1248,192,1344,192,1392,186.7L1440,181.3V320H0Z"
+          ></path>
+        </svg>
+      </div>
+
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+
+        .hero {
+          position: relative;
+          overflow: hidden;
+          color: #fff;
+          text-align: center;
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          font-family: 'Plus Jakarta Sans', sans-serif;
+          background: radial-gradient(circle at bottom, #1a0072, #2b0066 40%, #0a0020 100%);
+          background-attachment: fixed;
+          padding-bottom: 6rem; /* extra bottom spacing */
+        }
+
+        .hero::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
+          background-size: 40px 40px;
+          opacity: 0.4;
+        }
+
+        .hero-canvas {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          z-index: 0;
+        }
+
+        .hero-content {
+          position: relative;
+          z-index: 2;
+          max-width: 900px;
+          width: 100%;
+          padding: 1rem;
+        }
+
+        .hero-title {
+          font-size: 3.8rem;
+          font-weight: 800;
+          color: #fff;
+          margin-bottom: 1rem;
+        }
+
+        .hero-title span {
+          background: linear-gradient(90deg, #6a5eff, #b44cff, #ff6bd6);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+
+        .hero-subtitle {
+          font-size: 1.25rem;
+          color: #d7d7f3;
+          max-width: 700px;
+          margin: 0 auto 2rem;
+        }
+
+        .domain-form {
+          display: flex;
+          justify-content: center;
+          margin-bottom: 2rem;
+        }
+
+        .input-container {
+          display: flex;
+          align-items: center;
+          background: rgba(255,255,255,0.08);
+          border: 1px solid rgba(255,255,255,0.15);
+          backdrop-filter: blur(10px);
+          border-radius: 50px;
+          padding: 0.8rem 1rem;
+          width: 100%;
+          max-width: 600px;
+          transition: all 0.3s ease;
+        }
+
+        .input-container.active-glow {
+          box-shadow: 0 0 25px rgba(138, 90, 255, 0.3);
+          border-color: rgba(255,255,255,0.4);
+        }
+
+        .input-container input {
+          flex: 1;
+          border: none;
+          outline: none;
+          font-size: 1.1rem;
+          color: #fff;
+          background: transparent;
+          padding: 0.6rem;
+        }
+
+        .input-container input::placeholder {
+          color: rgba(255,255,255,0.7);
+        }
+
+        .input-container button {
+          background: linear-gradient(90deg, #6a5eff, #b44cff, #ff6bd6);
+          border: none;
+          color: #fff;
+          padding: 0.8rem 1.6rem;
+          border-radius: 50px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .input-container button:hover {
+          transform: scale(1.05);
+          box-shadow: 0 0 20px rgba(138, 90, 255, 0.4);
+        }
+
+        .scrolling-text {
+          width: 100%;
+          overflow: hidden;
+          margin-top: 1rem;
+        }
+
+        .scrolling-track {
+          display: flex;
+          white-space: nowrap;
+          animation: scrollLeft 25s linear infinite;
+        }
+
+        .scroll-item {
+          font-size: 1rem;
+          opacity: 0.8;
+          margin: 0 1.2rem;
+          color: #cfd3ff;
+        }
+
+        .hero-bottom-curve {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          width: 100%;
+          overflow: hidden;
+          line-height: 0;
+        }
+
+        .hero-bottom-curve svg {
+          display: block;
+          width: calc(100% + 1.3px);
+          height: 130px;
+        }
+
+        @keyframes scrollLeft {
+          from { transform: translateX(0); }
+          to { transform: translateX(-50%); }
+        }
+
+        @media (max-width: 768px) {
+          .hero-title { font-size: 2.5rem; }
+          .hero-subtitle { font-size: 1.05rem; }
+          .input-container { flex-direction: column; border-radius: 20px; }
+          .input-container button { width: 100%; margin-top: 0.6rem; }
+          .scroll-item { font-size: 0.9rem; margin: 0 0.6rem; }
+          .hero-bottom-curve svg { height: 90px; }
+        }
+      `}</style>
     </section>
   );
 };
