@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import Navbar from './Components/audit/Navbar'
 import HeroSection from './Components/audit/HeroSection'
+import AuditVisualization from './Components/audit/AuditVisualization'
 import AuditResults from './Components/audit/AuditResults'
 import FeaturesSection from './Components/audit/FeaturesSection'
 import CTASection from './Components/audit/CTASection'
@@ -14,49 +15,37 @@ function App() {
   const [currentStep, setCurrentStep] = useState(0)
   const [error, setError] = useState('')
 
+  // Simulate progress animation
   const simulateProgress = () => {
     setProgress(0)
     setCurrentStep(0)
 
     const interval = setInterval(() => {
-      setProgress((prev) => {
+      setProgress(prev => {
         if (prev >= 90) {
           clearInterval(interval)
           return 90
         }
         return prev + 10
       })
-
-      setCurrentStep((prev) => (prev + 1) % 10)
+      setCurrentStep(prev => (prev + 1) % 10)
     }, 500)
 
     return interval
   }
 
+  // Audit handler
   const handleAudit = async (domain) => {
     setLoading(true)
     setError('')
     setAuditResults(null)
-
     const progressInterval = simulateProgress()
 
     try {
-      // ✅ Automatically choose backend URL based on environment
-      const backendURL =
-        import.meta.env.MODE === 'development'
-          ? '/api'
-          : 'https://comprihensive-audit-backend.onrender.com'
-
-      // ✅ Works for both local & deployed environments
-      const response = await fetch(`${backendURL}/audit/${domain}`)
-
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`)
-      }
-
+      const response = await fetch(`https://comprihensive-audit-backend.onrender.com/audit/${domain}`)
+      if (!response.ok) throw new Error(`Server error: ${response.status}`)
       const data = await response.json()
 
-      // Complete the progress
       setProgress(100)
       setTimeout(() => {
         setAuditResults(data)
@@ -64,9 +53,7 @@ function App() {
       }, 500)
     } catch (err) {
       console.error('Error:', err)
-      setError(
-        'Failed to connect to the backend. Please try again later or check your network connection.'
-      )
+      setError('Failed to connect to the backend. Please ensure FastAPI is running on port 8000.')
       setLoading(false)
     } finally {
       clearInterval(progressInterval)
@@ -81,45 +68,33 @@ function App() {
   }
 
   return (
-    <div
-      className="App"
-      style={{ fontFamily: 'Inter, sans-serif', color: '#1e293b' }}
-    >
+    <div className="App" style={{ fontFamily: 'Inter, sans-serif', color: '#1e293b', background: '#fff' }}>
       <Navbar />
 
-      {/* Show HeroSection only when not loading and no results */}
+      {/* Hero section */}
       {!loading && !auditResults && (
-        <HeroSection onAudit={handleAudit} loading={loading} />
+        <>
+          <HeroSection onAudit={handleAudit} loading={loading} />
+        </>
       )}
 
-      {/* Show loading state */}
+      {/* Loader */}
       {loading && <CreativeLoader progress={progress} currentStep={currentStep} />}
 
-      {/* Error message */}
+      {/* Error display */}
       {error && !loading && (
-        <div
-          className="error-message"
-          style={{
-            background: '#fee2e2',
-            color: '#dc2626',
-            border: '1px solid #fecaca',
-            padding: '1.5rem',
-            borderRadius: '0.75rem',
-            margin: '2rem auto',
-            maxWidth: '600px',
-            textAlign: 'center',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-          }}
-        >
-          <div
-            style={{
-              fontSize: '1.25rem',
-              fontWeight: '600',
-              marginBottom: '0.5rem',
-            }}
-          >
-            Audit Failed
-          </div>
+        <div style={{
+          background: '#fee2e2',
+          color: '#dc2626',
+          border: '1px solid #fecaca',
+          padding: '1.5rem',
+          borderRadius: '0.75rem',
+          margin: '2rem auto',
+          maxWidth: '600px',
+          textAlign: 'center',
+          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+        }}>
+          <div style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '0.5rem' }}>Audit Failed</div>
           {error}
           <button
             onClick={handleNewAudit}
@@ -139,15 +114,17 @@ function App() {
         </div>
       )}
 
-      {/* Show results when available */}
-      {auditResults && !loading && (
-        <AuditResults results={auditResults} onNewAudit={handleNewAudit} />
-      )}
+      {/* Audit results */}
+      {auditResults && !loading && <AuditResults results={auditResults} onNewAudit={handleNewAudit} />}
 
-      {/* Show features and CTA only when no results and not loading */}
+      {/* Static sections */}
       {!auditResults && !loading && !error && (
         <>
           <FeaturesSection />
+
+          {/* ✅ Move AuditVisualization here (after FeaturesSection) */}
+          <AuditVisualization />
+
           <CTASection onAudit={handleAudit} />
         </>
       )}
@@ -157,19 +134,21 @@ function App() {
   )
 }
 
-// 🎨 Creative Loader Component
+/* ==========================
+   CREATIVE LOADER COMPONENT
+========================== */
 const CreativeLoader = ({ progress, currentStep }) => {
   const steps = [
-    'Initializing domain analysis...',
-    'Checking domain registration...',
-    'Scanning hosting information...',
-    'Analyzing email configuration...',
-    'Detecting technology stack...',
-    'Checking for WordPress...',
-    'Scanning for advertisements...',
-    'Auditing security headers...',
-    'Measuring performance...',
-    'Compiling final report...',
+    "Initializing domain analysis...",
+    "Checking domain registration...",
+    "Scanning hosting information...",
+    "Analyzing email configuration...",
+    "Detecting technology stack...",
+    "Checking for WordPress...",
+    "Scanning for advertisements...",
+    "Auditing security headers...",
+    "Measuring performance...",
+    "Compiling final report...",
   ]
 
   return (
@@ -197,6 +176,7 @@ const CreativeLoader = ({ progress, currentStep }) => {
           border: '1px solid rgba(255, 255, 255, 0.2)',
         }}
       >
+        {/* Logo animation */}
         <div
           style={{
             width: '80px',
@@ -219,6 +199,7 @@ const CreativeLoader = ({ progress, currentStep }) => {
           Analyzing Domain
         </h2>
 
+        {/* Progress bar */}
         <div
           style={{
             width: '100%',
@@ -241,24 +222,11 @@ const CreativeLoader = ({ progress, currentStep }) => {
           />
         </div>
 
-        <div
-          style={{
-            fontSize: '1.5rem',
-            fontWeight: 700,
-            marginBottom: '0.5rem',
-          }}
-        >
+        <div style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.5rem' }}>
           {progress}%
         </div>
 
-        <p
-          style={{
-            fontSize: '1rem',
-            opacity: 0.9,
-            minHeight: '24px',
-            marginBottom: '2rem',
-          }}
-        >
+        <p style={{ fontSize: '1rem', opacity: 0.9, minHeight: '24px', marginBottom: '2rem' }}>
           {steps[currentStep]}
         </p>
 
@@ -287,23 +255,15 @@ const CreativeLoader = ({ progress, currentStep }) => {
         </div>
       </div>
 
+      {/* Keyframes */}
       <style jsx>{`
         @keyframes spin {
-          0% {
-            transform: rotate(0deg);
-          }
-          100% {
-            transform: rotate(360deg);
-          }
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
         @keyframes pulse {
-          0%,
-          100% {
-            transform: scale(1);
-          }
-          50% {
-            transform: scale(1.05);
-          }
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.05); }
         }
       `}</style>
     </div>
