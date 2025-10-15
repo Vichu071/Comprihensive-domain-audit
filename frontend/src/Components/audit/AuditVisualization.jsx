@@ -45,15 +45,15 @@ const AuditVisualization = () => {
             <div style={styles.card}>
               <h3 style={styles.cardTitle}>🔒 Adaptive SSL Monitoring</h3>
               <p style={styles.cardText}>
-                Get real-time SSL tracking with predictive renewal alerts and
+                Real-time SSL tracking with predictive renewal alerts and
                 quantum-safe certificate suggestions.
               </p>
             </div>
             <div style={styles.card}>
               <h3 style={styles.cardTitle}>🧠 AI Threat Prediction</h3>
               <p style={styles.cardText}>
-                EngagePro anticipates vulnerabilities before they appear — using
-                behavioral pattern recognition for proactive defense.
+                EngagePro anticipates vulnerabilities before they appear —
+                leveraging pattern recognition for proactive defense.
               </p>
             </div>
           </div>
@@ -64,14 +64,14 @@ const AuditVisualization = () => {
             <div style={styles.card}>
               <h3 style={styles.cardTitle}>🌐 Smart DNS Insights</h3>
               <p style={styles.cardText}>
-                Instantly visualize your domain’s global DNS propagation and
-                optimize route efficiency using EngagePro’s resolver AI.
+                Visualize your domain’s DNS propagation and optimize global
+                routing using EngagePro’s resolver intelligence.
               </p>
             </div>
             <div style={styles.card}>
               <h3 style={styles.cardTitle}>🛰️ Real-Time Routing Monitor</h3>
               <p style={styles.cardText}>
-                Track and reroute downtime automatically through intelligent
+                Monitor and reroute downtime automatically with intelligent
                 failover systems for zero interruption.
               </p>
             </div>
@@ -83,15 +83,14 @@ const AuditVisualization = () => {
             <div style={styles.card}>
               <h3 style={styles.cardTitle}>📊 Deep Domain Intelligence</h3>
               <p style={styles.cardText}>
-                From traffic spikes to uptime trends — analyze domain health and
-                performance with machine learning-backed insights.
+                Analyze uptime, SEO, and performance trends using machine-learning-backed analytics.
               </p>
             </div>
             <div style={styles.card}>
               <h3 style={styles.cardTitle}>💡 Optimization Suggestions</h3>
               <p style={styles.cardText}>
-                EngagePro gives actionable steps to enhance your SEO, reduce
-                latency, and boost conversions.
+                EngagePro offers smart, actionable improvements to boost your
+                site speed, visibility, and engagement.
               </p>
             </div>
           </div>
@@ -102,15 +101,15 @@ const AuditVisualization = () => {
             <div style={styles.card}>
               <h3 style={styles.cardTitle}>🌟 EngagePro Next Vision</h3>
               <p style={styles.cardText}>
-                We're building the future of AI-driven domain intelligence — a
-                single ecosystem connecting analytics, automation, and growth.
+                The next evolution of EngagePro will unify analytics, automation,
+                and AI forecasting for seamless domain intelligence.
               </p>
             </div>
             <div style={styles.card}>
               <h3 style={styles.cardTitle}>🔮 Predictive Domain Strategy</h3>
               <p style={styles.cardText}>
-                Coming soon: a module that forecasts domain performance shifts
-                and helps plan your digital evolution.
+                Coming soon — a module that predicts domain trends and
+                recommends strategic actions automatically.
               </p>
             </div>
           </div>
@@ -121,8 +120,8 @@ const AuditVisualization = () => {
   };
 
   return (
-    <div style={styles.section}>
-      {/* ===== Menu Tabs ===== */}
+    <section style={styles.section}>
+      {/* ===== Tabs ===== */}
       <div style={styles.menuWrapper}>
         <div style={styles.menuContainer}>
           {tabs.map((tab) => (
@@ -134,46 +133,44 @@ const AuditVisualization = () => {
                 ...(activeTab === tab.key ? styles.activeTab : {}),
               }}
             >
-              {tab.icon}
-              <span style={{ marginLeft: "6px" }}>{tab.label}</span>
+              <span style={styles.icon}>{tab.icon}</span>
+              <span>{tab.label}</span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* ===== Dashboard Area ===== */}
+      {/* ===== Dashboard ===== */}
       <div style={styles.dashboard}>
         <div style={styles.dashboardInner}>
           <h2 style={styles.sectionTitle}>EngagePro Insights Dashboard</h2>
           <p style={styles.subtitle}>
-            "Empowering digital performance — one domain at a time."
+            “Empowering digital performance — one domain at a time.”
           </p>
           {renderContent()}
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 
 /* ===============================
-   PREMIUM INLINE STYLES
+   PREMIUM RESPONSIVE STYLING
 =============================== */
 const styles = {
   section: {
-    position: "relative",
     background:
-      "linear-gradient(180deg, #1a084b 0%, #220e74 50%, #0a043c 100%)",
+      "linear-gradient(180deg, #2b0069 0%, #40189b 50%, #1a084b 100%)",
     padding: "5rem 1rem 6rem",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
+    fontFamily: "'Inter', sans-serif",
   },
   menuWrapper: {
-    position: "relative",
-    zIndex: 2,
-    marginBottom: "2rem",
     width: "100%",
     overflowX: "auto",
+    marginBottom: "2rem",
     display: "flex",
     justifyContent: "center",
   },
@@ -185,16 +182,17 @@ const styles = {
     background: "rgba(255, 255, 255, 0.08)",
     borderRadius: "2rem",
     backdropFilter: "blur(10px)",
-    boxShadow: "0 8px 20px rgba(0,0,0,0.2)",
+    boxShadow: "0 6px 20px rgba(0,0,0,0.25)",
     flexWrap: "nowrap",
   },
   menuButton: {
     display: "flex",
     alignItems: "center",
+    gap: "0.4rem",
     background: "transparent",
-    border: "1px solid rgba(255,255,255,0.3)",
-    color: "#ffffffcc",
-    padding: "0.6rem 1.2rem",
+    border: "1px solid rgba(255,255,255,0.25)",
+    color: "#f1f1f1",
+    padding: "0.6rem 1rem",
     borderRadius: "2rem",
     cursor: "pointer",
     fontWeight: 500,
@@ -203,20 +201,24 @@ const styles = {
     whiteSpace: "nowrap",
   },
   activeTab: {
-    background: "#ffffff",
-    color: "#111",
-    boxShadow: "0 4px 12px rgba(255,255,255,0.25)",
+    background: "#fff",
+    color: "#1a084b",
+    boxShadow: "0 4px 15px rgba(255,255,255,0.3)",
+    transform: "scale(1.05)",
+  },
+  icon: {
+    fontSize: "1rem",
   },
   dashboard: {
     width: "90%",
-    maxWidth: "1000px",
+    maxWidth: "1100px",
     background: "rgba(255,255,255,0.12)",
     borderRadius: "2rem",
     padding: "2rem",
     boxShadow: "0 10px 40px rgba(0,0,0,0.4)",
   },
   dashboardInner: {
-    background: "#fff",
+    background: "#ffffff",
     borderRadius: "1.5rem",
     padding: "2.5rem",
     boxShadow: "0 8px 20px rgba(0,0,0,0.1)",
@@ -226,25 +228,25 @@ const styles = {
     fontSize: "2rem",
     fontWeight: 700,
     marginBottom: "0.5rem",
-    color: "#1a1a2e",
+    color: "#111",
   },
   subtitle: {
     textAlign: "center",
-    color: "#4b5563",
+    color: "#555",
     marginBottom: "2rem",
     fontStyle: "italic",
   },
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
     gap: "1.5rem",
   },
   card: {
     background: "#f9fafb",
     borderRadius: "1rem",
     padding: "1.5rem",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
-    transition: "transform 0.3s ease",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
+    transition: "transform 0.3s ease, box-shadow 0.3s ease",
   },
   cardTitle: {
     fontSize: "1.2rem",
@@ -256,6 +258,12 @@ const styles = {
     fontSize: "0.95rem",
     lineHeight: "1.6",
     color: "#374151",
+  },
+  "@media (maxWidth: 768px)": {
+    sectionTitle: { fontSize: "1.6rem" },
+    menuContainer: { gap: "0.5rem" },
+    cardTitle: { fontSize: "1rem" },
+    cardText: { fontSize: "0.9rem" },
   },
 };
 
