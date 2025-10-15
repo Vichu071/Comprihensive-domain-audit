@@ -1,311 +1,234 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react';
 
 const HeroSection = ({ onAudit, loading }) => {
-  const [domain, setDomain] = useState('')
-  const [isVisible, setIsVisible] = useState(false)
-  const [glowPosition, setGlowPosition] = useState({ x: 50, y: 50 })
+  const [domain, setDomain] = useState('');
+  const canvasRef = useRef(null);
+  const particles = useRef([]);
 
+  // Initialize particles
   useEffect(() => {
-    setIsVisible(true)
-    
-    // Mouse move effect for interactive background
-    const handleMouseMove = (e) => {
-      const { clientX, clientY } = e
-      const x = (clientX / window.innerWidth) * 100
-      const y = (clientY / window.innerHeight) * 100
-      setGlowPosition({ x, y })
-    }
+    const temp = Array.from({ length: 50 }).map(() => ({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      size: Math.random() * 4 + 1,
+      speedX: (Math.random() - 0.5) * 0.1, // slower speed
+      speedY: (Math.random() - 0.5) * 0.1, // slower speed
+    }));
+    particles.current = temp;
+  }, []);
 
-    window.addEventListener('mousemove', handleMouseMove)
-    return () => window.removeEventListener('mousemove', handleMouseMove)
-  }, [])
+  // Animate particles
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+
+    const resizeCanvas = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      particles.current.forEach(p => {
+        // Move particle
+        p.x += p.speedX;
+        p.y += p.speedY;
+
+        // Wrap around edges
+        if (p.x < 0) p.x = canvas.width;
+        if (p.x > canvas.width) p.x = 0;
+        if (p.y < 0) p.y = canvas.height;
+        if (p.y > canvas.height) p.y = 0;
+
+        // Glow reacts to typing
+        const glowFactor = domain ? 1.3 : 1;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(138, 43, 226, ${0.2 * glowFactor})`;
+        ctx.shadowBlur = 8 * glowFactor; // softer glow
+        ctx.shadowColor = 'rgba(138, 43, 226, 0.5)';
+        ctx.fill();
+      });
+
+      requestAnimationFrame(animate);
+    };
+    animate();
+
+    return () => window.removeEventListener('resize', resizeCanvas);
+  }, [domain]);
 
   const handleSubmit = (e) => {
-    e.preventDefault()
-    if (domain.trim()) {
-      onAudit(domain.trim())
-    }
-  }
+    e.preventDefault();
+    if (domain.trim()) onAudit(domain.trim());
+  };
 
   return (
-    <>
-      <style jsx>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-10px); }
+    <section className="hero">
+      <canvas ref={canvasRef} className="hero-canvas"></canvas>
+
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&display=swap');
+
+        .hero {
+          position: relative;
+          overflow: hidden;
+          color: #fff;
+          text-align: center;
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-start;
+          padding-top: 120px;
+          font-family: 'Inter Tight', sans-serif;
+          background: linear-gradient(135deg, #1b0032, #3a006e, #0a0011);
         }
-        
-        @keyframes glow {
-          0%, 100% { box-shadow: 0 0 20px rgba(138, 43, 226, 0.3); }
-          50% { box-shadow: 0 0 30px rgba(138, 43, 226, 0.6); }
+
+        .hero-canvas {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          z-index: 0;
         }
-        
-        @keyframes slideIn {
-          from { 
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to { 
-            opacity: 1;
-            transform: translateY(0);
-          }
+
+        .hero-content {
+          position: relative;
+          z-index: 2;
+          max-width: 900px;
+          padding: 0 1rem;
         }
-        
-        .float-animation {
-          animation: float 3s ease-in-out infinite;
+
+        .hero-title {
+          font-size: 4rem;
+          font-weight: 700;
+          line-height: 1.1;
+          color: #fff;
+          margin-bottom: 1rem;
         }
-        
-        .glow-animation {
-          animation: glow 2s ease-in-out infinite;
+
+        .hero-subtitle {
+          font-size: 1.3rem;
+          color: #ddd;
+          max-width: 700px;
+          margin: 0 auto 2rem;
         }
-        
-        .slide-in {
-          animation: slideIn 0.8s ease-out forwards;
+
+        .scrolling-text {
+          width: 100%;
+          overflow: hidden;
+          margin-bottom: 3rem;
         }
-        
-        .loading {
-          width: 20px;
-          height: 20px;
-          border: 2px solid transparent;
-          border-top: 2px solid #8a2be2;
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
+
+        .scrolling-track {
+          display: flex;
+          white-space: nowrap;
+          animation: scrollLeft 20s linear infinite;
         }
-        
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
+
+        .scroll-item {
+          font-size: 1rem;
+          font-weight: 500;
+          letter-spacing: 0.5px;
+          opacity: 0.8;
+          margin: 0 1rem;
         }
-        
-        .feature-card {
+
+        @keyframes scrollLeft {
+          from { transform: translateX(0); }
+          to { transform: translateX(-50%); }
+        }
+
+        .domain-form {
+          display: flex;
+          justify-content: center;
+          margin-top: 2rem;
+        }
+
+        .input-container {
+          display: flex;
+          align-items: center;
+          background: #ffffff;
+          border-radius: 15px;
+          padding: 1rem 1.5rem;
+          width: 100%;
+          max-width: 600px;
+          box-shadow: 0 10px 25px rgba(0,0,0,0.2);
           transition: all 0.3s ease;
+        }
+
+        .input-container input {
+          flex: 1;
+          border: none;
+          outline: none;
+          font-size: 1.2rem;
+          color: #050009;
+          font-weight: 500;
+          background: transparent;
+        }
+
+        .input-container input::placeholder {
+          color: #888;
+        }
+
+        .input-container button {
+          background: #6a0dad;
+          border: none;
+          color: #fff;
+          padding: 0.8rem 2rem;
+          border-radius: 12px;
+          font-weight: 600;
           cursor: pointer;
+          margin-left: 1rem;
+          transition: all 0.3s ease;
         }
-        
-        .feature-card:hover {
-          transform: translateY(-5px) scale(1.05);
-          background: rgba(138, 43, 226, 0.1);
-        }
-        
-        .input-glow:focus {
-          box-shadow: 0 0 20px rgba(138, 43, 226, 0.5);
-          border-color: #8a2be2;
+
+        .input-container button:hover {
+          background: #7a1fcc;
         }
       `}</style>
 
-      <section style={{
-        background: 'linear-gradient(135deg, #0a0a0a 0%, #1a0a2e 50%, #0a0a0a 100%)',
-        color: 'white',
-        padding: '6rem 0',
-        textAlign: 'center',
-        position: 'relative',
-        overflow: 'hidden',
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center'
-      }}>
-        {/* Animated Background Elements */}
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: `radial-gradient(circle at ${glowPosition.x}% ${glowPosition.y}%, rgba(138, 43, 226, 0.1) 0%, transparent 50%)`,
-          transition: 'all 0.3s ease-out'
-        }} />
-        
-        {/* Floating particles */}
-        <div className="float-animation" style={{
-          position: 'absolute',
-          top: '20%',
-          left: '10%',
-          width: '4px',
-          height: '4px',
-          background: '#8a2be2',
-          borderRadius: '50%',
-          boxShadow: '0 0 10px #8a2be2'
-        }} />
-        <div className="float-animation" style={{
-          position: 'absolute',
-          top: '60%',
-          right: '15%',
-          width: '6px',
-          height: '6px',
-          background: '#8a2be2',
-          borderRadius: '50%',
-          boxShadow: '0 0 15px #8a2be2',
-          animationDelay: '1.5s'
-        }} />
-        <div className="float-animation" style={{
-          position: 'absolute',
-          bottom: '30%',
-          left: '20%',
-          width: '3px',
-          height: '3px',
-          background: '#8a2be2',
-          borderRadius: '50%',
-          boxShadow: '0 0 8px #8a2be2',
-          animationDelay: '2.5s'
-        }} />
+      <div className="hero-content">
+        <h1 className="hero-title">
+          Complete <span>Domain Analysis</span> Tool
+        </h1>
+        <p className="hero-subtitle">
+          Get deep insights — WHOIS, Tech Stack, Security, Email, and Performance.
+        </p>
 
-        <div className="container" style={{
-          position: 'relative',
-          zIndex: 2,
-          opacity: isVisible ? 1 : 0,
-          transform: isVisible ? 'translateY(0)' : 'translateY(30px)',
-          transition: 'all 0.8s ease-out'
-        }}>
-          <h1 style={{
-            fontSize: '3.5rem',
-            fontWeight: 'bold',
-            marginBottom: '1.5rem',
-            lineHeight: '1.2',
-            background: 'linear-gradient(45deg, #ffffff, #8a2be2)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            opacity: isVisible ? 1 : 0,
-            transform: isVisible ? 'translateY(0)' : 'translateY(30px)',
-            transition: 'all 0.8s ease-out 0.2s'
-          }}>
-            Complete Domain Analysis Tool
-          </h1>
-          
-          <p style={{
-            fontSize: '1.25rem',
-            marginBottom: '3rem',
-            maxWidth: '600px',
-            margin: '0 auto 3rem',
-            opacity: isVisible ? 0.9 : 0,
-            lineHeight: '1.6',
-            transform: isVisible ? 'translateY(0)' : 'translateY(30px)',
-            transition: 'all 0.8s ease-out 0.4s'
-          }}>
-            Get comprehensive insights into any domain - WHOIS data, technology stack, 
-            email configuration, security headers, and performance metrics.
-          </p>
-          
-          <form onSubmit={handleSubmit} style={{
-            maxWidth: '500px',
-            margin: '0 auto',
-            display: 'flex',
-            gap: '0.5rem',
-            opacity: isVisible ? 1 : 0,
-            transform: isVisible ? 'translateY(0)' : 'translateY(30px)',
-            transition: 'all 0.8s ease-out 0.6s'
-          }}>
+        <div className="scrolling-text">
+          <div className="scrolling-track">
+            {['WHOIS Data', 'Tech Stack', 'Security Headers', 'Email Setup', 'Performance Metrics'].map((item, i) => (
+              <span key={i} className="scroll-item">{item} •</span>
+            ))}
+            {['WHOIS Data', 'Tech Stack', 'Security Headers', 'Email Setup', 'Performance Metrics'].map((item, i) => (
+              <span key={`r${i}`} className="scroll-item">{item} •</span>
+            ))}
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="domain-form">
+          <div className="input-container">
             <input
               type="text"
               value={domain}
               onChange={(e) => setDomain(e.target.value)}
               placeholder="Enter domain (e.g., example.com)"
-              className="input-glow"
-              style={{
-                flex: 1,
-                color: '#000',
-                fontSize: '1.1rem',
-                padding: '1rem',
-                border: '2px solid #333',
-                borderRadius: '8px',
-                background: 'rgba(255, 255, 255, 0.95)',
-                transition: 'all 0.3s ease'
-              }}
               disabled={loading}
             />
-            <button 
-              type="submit" 
-              className={`glow-animation ${loading ? 'loading-state' : ''}`}
-              disabled={loading || !domain.trim()}
-              style={{
-                padding: '1rem 2rem',
-                fontSize: '1.1rem',
-                whiteSpace: 'nowrap',
-                background: loading ? '#4a1a8c' : 'linear-gradient(45deg, #8a2be2, #6a0dad)',
-                border: 'none',
-                borderRadius: '8px',
-                color: 'white',
-                fontWeight: 'bold',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                transition: 'all 0.3s ease',
-                opacity: loading ? 0.7 : 1
-              }}
-              onMouseEnter={(e) => {
-                if (!loading && domain.trim()) {
-                  e.target.style.transform = 'scale(1.05)'
-                  e.target.style.background = 'linear-gradient(45deg, #9b30ff, #7a1fcc)'
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!loading && domain.trim()) {
-                  e.target.style.transform = 'scale(1)'
-                  e.target.style.background = 'linear-gradient(45deg, #8a2be2, #6a0dad)'
-                }
-              }}
-            >
-              {loading ? (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <div className="loading"></div>
-                  Auditing...
-                </span>
-              ) : (
-                'Start Audit'
-              )}
+            <button type="submit" disabled={loading || !domain.trim()}>
+              {loading ? 'Auditing...' : 'Start Audit'}
             </button>
-          </form>
-
-          <div style={{
-            marginTop: '4rem',
-            display: 'flex',
-            justifyContent: 'center',
-            gap: '2rem',
-            flexWrap: 'wrap',
-            opacity: isVisible ? 1 : 0,
-            transform: isVisible ? 'translateY(0)' : 'translateY(30px)',
-            transition: 'all 0.8s ease-out 0.8s'
-          }}>
-            {[
-              { title: 'WHOIS', desc: 'Domain Info' },
-              { title: 'Tech', desc: 'Stack Analysis' },
-              { title: 'Security', desc: 'Headers Check' },
-              { title: 'Email', desc: 'Configuration' }
-            ].map((feature, index) => (
-              <div 
-                key={feature.title}
-                className="feature-card"
-                style={{
-                  textAlign: 'center',
-                  padding: '1.5rem 1rem',
-                  borderRadius: '12px',
-                  background: 'rgba(138, 43, 226, 0.05)',
-                  border: '1px solid rgba(138, 43, 226, 0.2)',
-                  minWidth: '140px',
-                  animationDelay: `${1 + index * 0.1}s`
-                }}
-              >
-                <div style={{ 
-                  fontSize: '2rem', 
-                  fontWeight: 'bold',
-                  background: 'linear-gradient(45deg, #8a2be2, #ffffff)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text'
-                }}>
-                  {feature.title}
-                </div>
-                <div style={{ 
-                  opacity: 0.8,
-                  marginTop: '0.5rem'
-                }}>
-                  {feature.desc}
-                </div>
-              </div>
-            ))}
           </div>
-        </div>
-      </section>
-    </>
-  )
-}
+        </form>
+      </div>
+    </section>
+  );
+};
 
-export default HeroSection
+export default HeroSection;
