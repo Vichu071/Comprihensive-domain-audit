@@ -1,718 +1,267 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Mail, Shield, Server, Cpu, Zap, Globe } from "lucide-react";
 
 const FeaturesSection = () => {
-  const [activeCard, setActiveCard] = useState(null)
-  const [isVisible, setIsVisible] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    setIsVisible(true)
-    
-    // Check if mobile device
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768)
-    }
-    
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    
-    return () => {
-      window.removeEventListener('resize', checkMobile)
-    }
-  }, [])
+  const navigate = useNavigate();
+  const [activeFeature, setActiveFeature] = useState("Hosting");
+  const [hoveredFeature, setHoveredFeature] = useState(null);
 
   const features = [
-    {
-      title: "WHOIS Analysis",
-      description: "Complete domain registration details and historical ownership tracking",
-      gradient: "from-blue-500 to-cyan-500",
-      icon: "🔍",
-      details: ["Registrar Information", "Historical Ownership", "Status Tracking"],
-      color: "#3B82F6",
-      pattern: "circles"
+    { name: "Hosting", icon: Server },
+    { name: "Email Setup", icon: Mail },
+    { name: "CMS & Theme", icon: Cpu },
+    { name: "Security", icon: Shield },
+    { name: "Performance", icon: Zap },
+    { name: "Technology Stack", icon: Globe },
+  ];
+
+  const featureContent = {
+    Hosting: {
+      icon: <Server size={36} color="#6d28d9" />,
+      title: "Hosting Insights",
+      details:
+        "Your site runs on AWS Lightsail — optimized for uptime, DNS performance, and scalability.",
+      stat: "Next Renewal: 23 Jan 2026",
     },
-    {
-      title: "Technology Stack",
-      description: "Identify frameworks, CMS, and third-party services with detailed mapping",
-      gradient: "from-purple-500 to-pink-500",
-      icon: "⚙️",
-      details: ["Framework Detection", "CMS Identification", "Service Mapping"],
-      color: "#8B5CF6",
-      pattern: "grid"
-    },
-    {
+    "Email Setup": {
+      icon: <Mail size={36} color="#6d28d9" />,
       title: "Email Configuration",
-      description: "Analyze email providers and security settings with validation",
-      gradient: "from-green-500 to-emerald-500",
-      icon: "📧",
-      details: ["Email Provider Analysis", "MX Record Configuration", "Contact Extraction"],
-      color: "#10B981",
-      pattern: "waves"
+      details:
+        "MX verified with Google Workspace. SPF, DKIM, and DMARC are fully configured for reliability.",
+      stat: "Deliverability: 99/100",
     },
-    {
-      title: "Security Audit",
-      description: "Comprehensive security checks and vulnerability assessment",
-      gradient: "from-red-500 to-orange-500",
-      icon: "🛡️",
-      details: ["SSL Certificate Analysis", "Security Headers", "Vulnerability Scan"],
-      color: "#EF4444",
-      pattern: "shields"
+    "CMS & Theme": {
+      icon: <Cpu size={36} color="#6d28d9" />,
+      title: "CMS & Theme Details",
+      details:
+        "WordPress 6.4 with Astra Pro — SEO-ready, lightweight, and responsive across all devices.",
+      stat: "Theme: Astra Pro 3.2.1",
     },
-    {
+    Security: {
+      icon: <Shield size={36} color="#6d28d9" />,
+      title: "Security Overview",
+      details:
+        "SSL and DNSSEC active. All major headers validated with no critical vulnerabilities detected.",
+      stat: "Last Scan: 12 Oct 2025",
+    },
+    Performance: {
+      icon: <Zap size={36} color="#6d28d9" />,
       title: "Performance Metrics",
-      description: "Measure load times and optimize website speed with insights",
-      gradient: "from-yellow-500 to-amber-500",
-      icon: "🚀",
-      details: ["Load Time Analysis", "Performance Scoring", "Optimization Tips"],
-      color: "#F59E0B",
-      pattern: "dots"
+      details:
+        "Average load time: 1.8s | Global optimization: 93/100 | Core Web Vitals: Excellent.",
+      stat: "Speed Grade: A",
     },
-    {
-      title: "Advertising Networks",
-      description: "Detect ad networks and tracking scripts with analytics",
-      gradient: "from-indigo-500 to-violet-500",
-      icon: "📊",
-      details: ["Ad Network Detection", "Tracking Scripts", "Analytics Mapping"],
-      color: "#6366F1",
-      pattern: "lines"
-    }
-  ]
+    "Technology Stack": {
+      icon: <Globe size={36} color="#6d28d9" />,
+      title: "Tech Stack Analysis",
+      details:
+        "React, Node.js, Cloudflare CDN, and Google Analytics detected. Fully optimized backend stack.",
+      stat: "Stack Health: Stable",
+    },
+  };
 
-  const PatternBackground = ({ pattern, color }) => {
-    const patterns = {
-      circles: (
-        <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0, opacity: 0.03 }}>
-          <pattern id="circles" width="60" height="60" patternUnits="userSpaceOnUse">
-            <circle cx="30" cy="30" r="3" fill={color} />
-            <circle cx="10" cy="10" r="2" fill={color} />
-            <circle cx="50" cy="20" r="2" fill={color} />
-          </pattern>
-          <rect width="100%" height="100%" fill="url(#circles)" />
-        </svg>
-      ),
-      grid: (
-        <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0, opacity: 0.03 }}>
-          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-            <path d="M 40 0 L 0 0 0 40" fill="none" stroke={color} strokeWidth="1"/>
-          </pattern>
-          <rect width="100%" height="100%" fill="url(#grid)" />
-        </svg>
-      ),
-      waves: (
-        <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0, opacity: 0.03 }}>
-          <pattern id="waves" width="80" height="40" patternUnits="userSpaceOnUse">
-            <path d="M0 20 Q20 10,40 20 T80 20" stroke={color} strokeWidth="1" fill="none"/>
-          </pattern>
-          <rect width="100%" height="100%" fill="url(#waves)" />
-        </svg>
-      ),
-      shields: (
-        <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0, opacity: 0.03 }}>
-          <pattern id="shields" width="50" height="50" patternUnits="userSpaceOnUse">
-            <path d="M25 5 L45 15 L45 35 L25 45 L5 35 L5 15 Z" stroke={color} strokeWidth="1" fill="none"/>
-          </pattern>
-          <rect width="100%" height="100%" fill="url(#shields)" />
-        </svg>
-      ),
-      dots: (
-        <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0, opacity: 0.03 }}>
-          <pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse">
-            <circle cx="10" cy="10" r="1.5" fill={color} />
-          </pattern>
-          <rect width="100%" height="100%" fill="url(#dots)" />
-        </svg>
-      ),
-      lines: (
-        <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0, opacity: 0.03 }}>
-          <pattern id="lines" width="30" height="30" patternUnits="userSpaceOnUse">
-            <path d="M0 30 L30 0" stroke={color} strokeWidth="1" fill="none"/>
-          </pattern>
-          <rect width="100%" height="100%" fill="url(#lines)" />
-        </svg>
-      )
-    }
+  const styles = {
+    section: {
+      backgroundColor: "#fafafa",
+      fontFamily: "'Inter', sans-serif",
+      padding: "60px 6%",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: "60px",
+    },
 
-    return patterns[pattern] || patterns.circles
-  }
+    // ─── Top Section ───
+    topRow: {
+      display: "flex",
+      flexWrap: "wrap",
+      justifyContent: "space-between",
+      alignItems: "center",
+      width: "100%",
+      maxWidth: "1100px",
+      textAlign: "left",
+    },
+    topLeft: {
+      flex: "0 0 50%",
+      minWidth: "280px",
+    },
+    h1: {
+      fontSize: "2rem",
+      fontWeight: 700,
+      color: "#0f172a",
+      lineHeight: 1.2,
+      marginBottom: "0.75rem",
+    },
+    p: {
+      fontSize: "0.95rem",
+      color: "#475569",
+      lineHeight: 1.5,
+      maxWidth: "90%",
+    },
+    topRight: {
+      flex: "0 0 50%",
+      minWidth: "240px",
+      display: "flex",
+      justifyContent: "flex-end",
+      marginTop: "1rem",
+    },
+    button: {
+      backgroundColor: "#6d28d9",
+      color: "#fff",
+      padding: "12px 26px",
+      borderRadius: "10px",
+      fontWeight: 600,
+      fontSize: "0.95rem",
+      border: "none",
+      cursor: "pointer",
+      transition: "all 0.3s ease",
+      boxShadow: "0 4px 10px rgba(109, 40, 217, 0.25)",
+    },
 
-  const handleCardClick = (index) => {
-    if (isMobile) {
-      setActiveCard(activeCard === index ? null : index)
-    }
-  }
+    // ─── Bottom Section ───
+    bottomRow: {
+      display: "flex",
+      flexWrap: "wrap",
+      justifyContent: "space-between",
+      alignItems: "stretch",
+      width: "100%",
+      maxWidth: "1100px",
+      gap: "30px",
+    },
+    bottomLeft: {
+      flex: "1 1 280px",
+      display: "flex",
+      flexDirection: "column",
+      borderTop: "1px solid #e2e8f0",
+      paddingTop: "10px",
+    },
+    menuItem: (active) => ({
+      display: "flex",
+      alignItems: "center",
+      gap: "10px",
+      padding: "14px 0",
+      borderBottom: "1px solid #e2e8f0",
+      fontSize: "0.95rem",
+      fontWeight: active ? 600 : 500,
+      color: active ? "#6d28d9" : "#1e293b",
+      cursor: "pointer",
+      transition: "all 0.25s ease",
+    }),
+    bottomRight: {
+      flex: "1 1 280px",
+      backgroundColor: "#fff",
+      border: "1px solid #000",
+      borderRadius: "14px",
+      padding: "26px",
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "center",
+      boxShadow: "0 6px 18px rgba(0, 0, 0, 0.05)",
+      minHeight: "250px",
+    },
+    iconBox: {
+      backgroundColor: "#f3e8ff",
+      borderRadius: "10px",
+      width: "60px",
+      height: "60px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: "16px",
+    },
+    cardTitle: {
+      fontSize: "1.25rem",
+      fontWeight: 700,
+      color: "#0f172a",
+      marginBottom: "6px",
+    },
+    cardText: {
+      fontSize: "0.95rem",
+      color: "#475569",
+      lineHeight: 1.5,
+      marginBottom: "6px",
+    },
+    stat: {
+      fontSize: "0.9rem",
+      color: "#6b7280",
+      fontWeight: 500,
+      marginTop: "4px",
+    },
 
-  const isCardActive = (index) => {
-    if (isMobile) {
-      return activeCard === index
-    }
-    // On desktop, we can keep hover behavior or set to always show details
-    return true // You can change this based on your preference
-  }
+    // ─── Responsive Adjustments ───
+    "@media (max-width: 768px)": {
+      section: { padding: "40px 5%" },
+      h1: { fontSize: "1.6rem" },
+      p: { fontSize: "0.9rem" },
+      topRow: { flexDirection: "column", textAlign: "center" },
+      topRight: { justifyContent: "center" },
+      bottomRow: { flexDirection: "column" },
+      bottomRight: { minHeight: "220px" },
+    },
+  };
 
   return (
-    <>
-      <style jsx>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
-        .feature-card {
-          transition: all 0.3s ease;
-          cursor: pointer;
-        }
-
-        /* Desktop hover effects */
-        @media (min-width: 769px) {
-          .feature-card:hover {
-            transform: translateY(-8px);
-          }
-
-          .feature-card:hover .feature-icon {
-            transform: scale(1.1);
-          }
-        }
-
-        /* Mobile active state */
-        .feature-card.mobile-active {
-            transform: translateY(-4px);
-            box-shadow: 0 15px 35px rgba(0,0,0,0.15) !important;
-        }
-
-        .feature-card.mobile-active .feature-icon {
-            transform: scale(1.05);
-        }
-
-        .feature-icon {
-          transition: all 0.3s ease;
-        }
-
-        .fade-in-up {
-          opacity: 0;
-          transform: translateY(30px);
-          animation: fadeInUp 0.8s ease forwards;
-        }
-
-        @keyframes fadeInUp {
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .stagger-animation > *:nth-child(1) { animation-delay: 0.1s; }
-        .stagger-animation > *:nth-child(2) { animation-delay: 0.2s; }
-        .stagger-animation > *:nth-child(3) { animation-delay: 0.3s; }
-        .stagger-animation > *:nth-child(4) { animation-delay: 0.4s; }
-        .stagger-animation > *:nth-child(5) { animation-delay: 0.5s; }
-        .stagger-animation > *:nth-child(6) { animation-delay: 0.6s; }
-
-        /* Mobile Responsive Styles for Features Section */
-        @media (max-width: 768px) {
-          /* Section padding */
-          section {
-            padding: 4rem 0 !important;
-          }
-
-          /* Container padding */
-          section > div:first-child {
-            padding: 0 1rem !important;
-          }
-
-          /* Header adjustments */
-          h2 {
-            font-size: 2.2rem !important;
-            line-height: 1.2 !important;
-            padding: 0 0.5rem;
-          }
-
-          /* Subtitle */
-          p {
-            font-size: 1.1rem !important;
-            padding: 0 1rem;
-            margin-bottom: 3rem !important;
-          }
-
-          /* Features grid - single column on mobile */
-          .features-grid {
-            grid-template-columns: 1fr !important;
-            gap: 1.5rem !important;
-          }
-
-          /* Feature cards */
-          .feature-card {
-            padding: 2rem 1.5rem !important;
-            margin: 0 auto;
-            max-width: 400px;
-            width: 100%;
-            border-radius: 16px !important;
-            transition: all 0.3s ease !important;
-          }
-
-          /* Mobile tap feedback */
-          .feature-card:active {
-            transform: scale(0.98) !important;
-          }
-
-          /* Always show details on mobile - no hover dependency */
-          .floating-action {
-            opacity: 1 !important;
-            transform: translateY(0) !important;
-          }
-
-          /* Icon container */
-          .feature-icon {
-            width: 60px !important;
-            height: 60px !important;
-            border-radius: 14px !important;
-            font-size: 1.5rem !important;
-            margin-bottom: 1.2rem !important;
-          }
-
-          /* Feature title */
-          .feature-title {
-            font-size: 1.3rem !important;
-            margin-bottom: 0.8rem !important;
-          }
-
-          /* Feature description */
-          .feature-description {
-            font-size: 0.95rem !important;
-            margin-bottom: 1.5rem !important;
-            line-height: 1.5 !important;
-          }
-
-          /* Feature details list */
-          .feature-detail {
-            padding: 0.6rem 0.8rem !important;
-            font-size: 0.9rem !important;
-          }
-
-          .feature-detail span {
-            font-size: 0.9rem !important;
-          }
-
-          /* Floating action - always visible on mobile */
-          .floating-action {
-            margin-top: 1.5rem !important;
-            padding: 0.6rem !important;
-            opacity: 1 !important;
-            transform: translateY(0) !important;
-          }
-
-          /* Background elements - reduce on mobile */
-          .background-element {
-            display: none;
-          }
-
-          /* Accent line - always full width on mobile */
-          .accent-line {
-            width: 100% !important;
-          }
-        }
-
-        @media (max-width: 480px) {
-          /* Extra small devices */
-          section {
-            padding: 3rem 0 !important;
-          }
-
-          h2 {
-            font-size: 1.8rem !important;
-          }
-
-          p {
-            font-size: 1rem !important;
-            margin-bottom: 2.5rem !important;
-          }
-
-          .feature-card {
-            padding: 1.5rem 1.2rem !important;
-            border-radius: 14px !important;
-          }
-
-          .feature-icon {
-            width: 55px !important;
-            height: 55px !important;
-            font-size: 1.3rem !important;
-            margin-bottom: 1rem !important;
-          }
-
-          .feature-title {
-            font-size: 1.2rem !important;
-          }
-
-          .feature-description {
-            font-size: 0.9rem !important;
-          }
-
-          .feature-detail {
-            padding: 0.5rem 0.7rem !important;
-            font-size: 0.85rem !important;
-          }
-
-          .features-grid {
-            gap: 1.2rem !important;
-          }
-        }
-
-        /* Tablet responsive styles */
-        @media (min-width: 769px) and (max-width: 1024px) {
-          .features-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
-            gap: 1.8rem !important;
-          }
-
-          .feature-card {
-            padding: 2rem 1.8rem !important;
-          }
-
-          h2 {
-            font-size: 2.8rem !important;
-          }
-
-          p {
-            font-size: 1.15rem !important;
-          }
-
-          /* Reduce background animation scale on tablet */
-          .background-element {
-            transform: scale(0.8);
-          }
-        }
-
-        /* Large desktop adjustments */
-        @media (min-width: 1440px) {
-          .features-grid {
-            grid-template-columns: repeat(3, 1fr) !important;
-            gap: 2.5rem !important;
-          }
-
-          .feature-card {
-            padding: 3rem 2.5rem !important;
-          }
-        }
-
-        /* Touch device optimizations */
-        @media (max-width: 768px) {
-          /* Increase touch targets */
-          .feature-card {
-            min-height: 44px;
-          }
-
-          /* Simplify hover effects for touch */
-          .feature-card:hover {
-            transform: none !important;
-          }
-
-          /* Active state for touch feedback */
-          .feature-card:active {
-            transform: scale(0.98) !important;
-            background: rgba(255, 255, 255, 0.95) !important;
-          }
-
-          /* Reduce animations for performance */
-          .feature-card {
-            animation: none;
-          }
-        }
-
-        /* Improve readability on small screens */
-        @media (max-width: 768px) {
-          .feature-description {
-            line-height: 1.5 !important;
-          }
-
-          .feature-detail span {
-            line-height: 1.4;
-          }
-        }
-
-        /* Prevent horizontal scrolling */
-        @media (max-width: 768px) {
-          .features-grid {
-            width: 100%;
-            box-sizing: border-box;
-          }
-        }
-      `}</style>
-
-      <section
-        id="features"
-        style={{
-          padding: '6rem 0',
-          background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-          fontFamily: "'Inter', sans-serif",
-          position: 'relative',
-          overflow: 'hidden'
-        }}
-      >
-        {/* Background Elements */}
-        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
-          <div
-            className="background-element"
-            style={{
-              position: 'absolute',
-              top: '10%',
-              right: '10%',
-              width: '300px',
-              height: '300px',
-              background: 'linear-gradient(45deg, rgba(59, 130, 246, 0.05), rgba(139, 92, 246, 0.05))',
-              borderRadius: '50%',
-              filter: 'blur(40px)'
-            }}
-          />
-          
-          <div
-            className="background-element"
-            style={{
-              position: 'absolute',
-              bottom: '20%',
-              left: '5%',
-              width: '250px',
-              height: '250px',
-              background: 'linear-gradient(45deg, rgba(16, 185, 129, 0.05), rgba(59, 130, 246, 0.05))',
-              borderRadius: '50%',
-              filter: 'blur(30px)'
-            }}
-          />
+    <section style={styles.section}>
+      {/* ─── Header Section ─── */}
+      <div style={styles.topRow}>
+        <div style={styles.topLeft}>
+          <h1 style={styles.h1}>Complete Domain Intelligence for Teams</h1>
+          <p style={styles.p}>
+            Audit, analyze, and secure your domain infrastructure using precise
+            monitoring tools designed for scalability.
+          </p>
         </div>
 
-        <div style={{
-          maxWidth: '1200px',
-          margin: '0 auto',
-          padding: '0 2rem',
-          position: 'relative'
-        }}>
-          {/* Header */}
-          <div
-            className="fade-in-up"
-            style={{
-              textAlign: 'center',
-              marginBottom: '4rem'
-            }}
+        <div style={styles.topRight}>
+          <button
+            style={styles.button}
+            onClick={() => navigate("/")}
+            onMouseOver={(e) => (e.target.style.background = "#5b21b6")}
+            onMouseOut={(e) => (e.target.style.background = "#6d28d9")}
           >
-            <h2 style={{
-              fontSize: '3rem',
-              fontWeight: '800',
-              marginBottom: '1rem',
-              color: '#1a202c',
-              lineHeight: '1.1'
-            }}>
-              Advanced Domain
-              <span style={{
-                background: 'linear-gradient(45deg, #3B82F6, #8B5CF6)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                display: 'block',
-                marginTop: '0.5rem'
-              }}>
-                Intelligence Suite
-              </span>
-            </h2>
-            <p style={{
-              fontSize: '1.2rem',
-              color: '#64748b',
-              maxWidth: '600px',
-              margin: '0 auto',
-              lineHeight: '1.6',
-              fontWeight: '400'
-            }}>
-              Unlock powerful insights with our comprehensive toolkit designed for{' '}
-              <span style={{ color: '#3B82F6', fontWeight: '600' }}>developers, analysts, and businesses</span>
-            </p>
-          </div>
+            Explore Dashboard
+          </button>
+        </div>
+      </div>
 
-          {/* Features Grid */}
-          <div
-            className="features-grid stagger-animation"
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
-              gap: '2rem',
-              position: 'relative'
-            }}
-          >
-            {features.map((feature, index) => (
+      {/* ─── Menu + Right Card ─── */}
+      <div style={styles.bottomRow}>
+        {/* Left Menu */}
+        <div style={styles.bottomLeft}>
+          {features.map((f) => {
+            const isActive = activeFeature === f.name;
+            const isHovered = hoveredFeature === f.name;
+            const Icon = f.icon;
+
+            return (
               <div
-                key={index}
-                className={`feature-card ${activeCard === index ? 'mobile-active' : ''}`}
-                onMouseEnter={() => !isMobile && setActiveCard(index)}
-                onMouseLeave={() => !isMobile && setActiveCard(null)}
-                onClick={() => handleCardClick(index)}
-                style={{
-                  background: 'white',
-                  padding: '2.5rem',
-                  borderRadius: '20px',
-                  boxShadow: '0 10px 40px rgba(0,0,0,0.08)',
-                  border: `1px solid rgba(0,0,0,0.05)`,
-                  position: 'relative',
-                  overflow: 'hidden',
-                  cursor: 'pointer',
-                  transform: (isMobile && activeCard === index) ? 'translateY(-4px)' : 'translateY(0)',
-                  transition: 'all 0.3s ease'
-                }}
+                key={f.name}
+                style={styles.menuItem(isActive)}
+                onClick={() => setActiveFeature(f.name)}
+                onMouseEnter={() => setHoveredFeature(f.name)}
+                onMouseLeave={() => setHoveredFeature(null)}
               >
-                {/* Pattern Background */}
-                <PatternBackground pattern={feature.pattern} color={feature.color} />
-
-                {/* Creative Accent Line */}
-                <div
-                  className="accent-line"
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    height: '4px',
-                    borderRadius: '2px',
-                    width: (isMobile || activeCard === index) ? '100%' : '60px',
-                    background: `linear-gradient(90deg, ${feature.color}, ${feature.color}80)`,
-                    transition: 'width 0.3s ease'
-                  }}
+                <Icon
+                  size={18}
+                  color={isActive || isHovered ? "#6d28d9" : "#000"}
                 />
-
-                <div style={{ position: 'relative', zIndex: 2 }}>
-                  {/* Icon Container */}
-                  <div
-                    className="feature-icon"
-                    style={{
-                      width: '70px',
-                      height: '70px',
-                      borderRadius: '18px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '2rem',
-                      marginBottom: '1.5rem',
-                      boxShadow: `0 8px 25px ${feature.color}30`,
-                      background: `linear-gradient(135deg, ${feature.color}, ${feature.color}80)`,
-                      transform: (isMobile && activeCard === index) ? 'scale(1.05)' : 'scale(1)',
-                      transition: 'transform 0.3s ease'
-                    }}
-                  >
-                    {feature.icon}
-                  </div>
-
-                  {/* Title */}
-                  <h3
-                    className="feature-title"
-                    style={{
-                      fontSize: '1.5rem',
-                      fontWeight: '700',
-                      marginBottom: '1rem',
-                      lineHeight: '1.2',
-                      color: (isMobile && activeCard === index) ? feature.color : '#1a202c',
-                      transition: 'color 0.3s ease'
-                    }}
-                  >
-                    {feature.title}
-                  </h3>
-
-                  {/* Description */}
-                  <p
-                    className="feature-description"
-                    style={{
-                      fontSize: '1rem',
-                      color: '#64748b',
-                      lineHeight: '1.6',
-                      marginBottom: '2rem',
-                      fontWeight: '400'
-                    }}
-                  >
-                    {feature.description}
-                  </p>
-
-                  {/* Features List */}
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.8rem'
-                  }}>
-                    {feature.details.map((detail, detailIndex) => (
-                      <div
-                        key={detailIndex}
-                        className="feature-detail"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.8rem',
-                          padding: '0.8rem 1rem',
-                          borderRadius: '10px',
-                          border: `1px solid ${feature.color}10`,
-                          background: 'rgba(255,255,255,0.8)',
-                          transition: 'all 0.3s ease'
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: '24px',
-                            height: '24px',
-                            borderRadius: '6px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '0.8rem',
-                            color: 'white',
-                            fontWeight: 'bold',
-                            flexShrink: 0,
-                            background: `linear-gradient(135deg, ${feature.color}, ${feature.color}80)`
-                          }}
-                        >
-                          ✓
-                        </div>
-                        <span style={{
-                          color: '#374151',
-                          fontSize: '0.95rem',
-                          fontWeight: '500'
-                        }}>
-                          {detail}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Floating Action */}
-                  <div
-                    className="floating-action"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      marginTop: '2rem',
-                      padding: '0.8rem',
-                      background: `linear-gradient(90deg, ${feature.color}08, ${feature.color}15)`,
-                      borderRadius: '10px',
-                      border: `1px solid ${feature.color}20`,
-                      opacity: (isMobile || activeCard === index) ? 1 : 0,
-                      transform: `translateY(${(isMobile || activeCard === index) ? 0 : 10}px)`,
-                      transition: 'all 0.3s ease'
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: '0.9rem',
-                        fontWeight: '600',
-                        color: feature.color
-                      }}
-                    >
-                      Learn more
-                    </span>
-                    <span
-                      style={{
-                        fontSize: '1rem',
-                        color: feature.color,
-                        transform: (isMobile || activeCard === index) ? 'translateX(5px)' : 'translateX(0)',
-                        transition: 'transform 0.3s ease'
-                      }}
-                    >
-                      →
-                    </span>
-                  </div>
-                </div>
+                {f.name}
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
-      </section>
-    </>
-  )
-}
 
-export default FeaturesSection
+        {/* Right Content Card */}
+        <div style={styles.bottomRight}>
+          <div style={styles.iconBox}>{featureContent[activeFeature].icon}</div>
+          <h3 style={styles.cardTitle}>{featureContent[activeFeature].title}</h3>
+          <p style={styles.cardText}>{featureContent[activeFeature].details}</p>
+          <div style={styles.stat}>{featureContent[activeFeature].stat}</div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default FeaturesSection;
