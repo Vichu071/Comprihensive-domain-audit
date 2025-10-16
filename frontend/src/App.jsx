@@ -5,6 +5,7 @@ import AuditVisualization from './Components/audit/AuditVisualization'
 import AuditResults from './Components/audit/AuditResults'
 import FeaturesSection from './Components/audit/FeaturesSection'
 import CTASection from './Components/audit/CTASection'
+import Contact from './Components/audit/Contact' // ✅ Added contact section
 import Footer from './Components/audit/Footer'
 import './App.css'
 
@@ -83,17 +84,19 @@ function App() {
 
       {/* Error display */}
       {error && !loading && (
-        <div style={{
-          background: '#fee2e2',
-          color: '#dc2626',
-          border: '1px solid #fecaca',
-          padding: '1.5rem',
-          borderRadius: '0.75rem',
-          margin: '2rem auto',
-          maxWidth: '600px',
-          textAlign: 'center',
-          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
-        }}>
+        <div
+          style={{
+            background: '#fee2e2',
+            color: '#dc2626',
+            border: '1px solid #fecaca',
+            padding: '1.5rem',
+            borderRadius: '0.75rem',
+            margin: '2rem auto',
+            maxWidth: '600px',
+            textAlign: 'center',
+            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+          }}
+        >
           <div style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '0.5rem' }}>Audit Failed</div>
           {error}
           <button
@@ -121,11 +124,9 @@ function App() {
       {!auditResults && !loading && !error && (
         <>
           <FeaturesSection />
-
-          {/* ✅ Move AuditVisualization here (after FeaturesSection) */}
           <AuditVisualization />
-
-          <CTASection onAudit={handleAudit} />
+          <CTASection onAudit={handleAudit} /> {/* ✅ Keep CTASection here */}
+          <Contact /> {/* ✅ Added Contact section right before Footer */}
         </>
       )}
 
@@ -176,7 +177,6 @@ const CreativeLoader = ({ progress, currentStep }) => {
           border: '1px solid rgba(255, 255, 255, 0.2)',
         }}
       >
-        {/* Logo animation */}
         <div
           style={{
             width: '80px',
@@ -199,7 +199,6 @@ const CreativeLoader = ({ progress, currentStep }) => {
           Analyzing Domain
         </h2>
 
-        {/* Progress bar */}
         <div
           style={{
             width: '100%',
@@ -255,7 +254,6 @@ const CreativeLoader = ({ progress, currentStep }) => {
         </div>
       </div>
 
-      {/* Keyframes */}
       <style jsx>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }
