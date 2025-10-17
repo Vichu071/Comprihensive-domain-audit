@@ -1,8 +1,8 @@
 // AuditResults.jsx
 import React, { useState, useEffect, useRef } from "react";
 import {
-  FiActivity, FiGlobe, FiServer, FiMail, FiCode, FiTrendingUp, FiZap, FiShield,
-  FiDownload, FiHome, FiCheck, FiX, FiEye
+  FiActivity, FiGlobe, FiServer, FiMail, FiCode, FiTrendingUp,
+  FiZap, FiShield, FiDownload, FiHome, FiCheck, FiX, FiEye
 } from "react-icons/fi";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
@@ -33,7 +33,7 @@ export default function AuditResults({ results = {}, onNewAudit }) {
 
   const exportPDF = async () => {
     if (!reportRef.current) return;
-    const original = reportRef.current.style.boxShadow;
+    const originalShadow = reportRef.current.style.boxShadow;
     reportRef.current.style.boxShadow = "none";
     try {
       const canvas = await html2canvas(reportRef.current, { scale: 2, useCORS: true });
@@ -55,7 +55,7 @@ export default function AuditResults({ results = {}, onNewAudit }) {
     } catch (e) {
       console.error("PDF export error:", e);
     } finally {
-      reportRef.current.style.boxShadow = original;
+      reportRef.current.style.boxShadow = originalShadow;
     }
   };
 
@@ -64,7 +64,7 @@ export default function AuditResults({ results = {}, onNewAudit }) {
       style={{
         display: "flex",
         justifyContent: "space-between",
-        padding: "10px 0",
+        padding: "12px 0",
         borderBottom: "1px dashed rgba(0,0,0,0.08)",
         flexDirection: isMobile ? "column" : "row",
         gap: isMobile ? 6 : 0,
@@ -72,33 +72,40 @@ export default function AuditResults({ results = {}, onNewAudit }) {
     >
       <div style={{ color: "#374151", fontWeight: 600 }}>{label}</div>
       <div style={{ color: "#111827", textAlign: isMobile ? "left" : "right" }}>
-        {children ?? (value !== undefined && value !== null ? String(value) : "—")}
+        {children ?? (value ? String(value) : "—")}
       </div>
     </div>
   );
 
   const ListRow = ({ label, items }) => (
-    <div style={{ padding: "10px 0", borderBottom: "1px dashed rgba(0,0,0,0.08)" }}>
+    <div style={{ padding: "12px 0", borderBottom: "1px dashed rgba(0,0,0,0.08)" }}>
       <div style={{ color: "#374151", fontWeight: 600, marginBottom: 8 }}>{label}</div>
-      <div>
-        {items && Array.isArray(items) && items.length ? (
-          <div style={{
+      {items?.length ? (
+        <div
+          style={{
             display: "flex",
             flexWrap: "wrap",
             gap: 8,
-            justifyContent: isMobile ? "flex-start" : "flex-end"
-          }}>
-            {items.map((it, i) => (
-              <span key={i} style={{
+            justifyContent: isMobile ? "flex-start" : "flex-end",
+          }}
+        >
+          {items.map((it, i) => (
+            <span
+              key={i}
+              style={{
                 background: "#F3F4F6",
                 padding: "6px 10px",
                 borderRadius: 8,
-                color: "#111"
-              }}>{String(it)}</span>
-            ))}
-          </div>
-        ) : <span style={{ color: "#6B7280" }}>None detected</span>}
-      </div>
+                color: "#111",
+              }}
+            >
+              {String(it)}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <span style={{ color: "#6B7280" }}>None detected</span>
+      )}
     </div>
   );
 
@@ -112,29 +119,52 @@ export default function AuditResults({ results = {}, onNewAudit }) {
   return (
     <>
       <style>{`
-        .page { display: flex; gap: 24px; justify-content: center; align-items: flex-start; padding-top: 80px; } /* ⬆️ big top padding */
+        .page {
+          display: flex;
+          gap: 32px;
+          justify-content: center;
+          align-items: flex-start;
+          padding: 60px 20px 80px;
+          background: #f9fafb;
+          min-height: 100vh;
+        }
         .sidebar {
-          width: 240px;  /* smaller sidebar */
-          border-radius: 14px;
-          padding: 18px;
+          width: 240px;
+          border-radius: 16px;
+          padding: 20px;
           background: linear-gradient(180deg,#1a0526,#2b0636);
           color: #e6e6f0;
-          box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+          box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+          flex-shrink: 0;
+          position: sticky;
+          top: 20px;
+          height: fit-content;
         }
         .logo {
-          width:50px; height:50px;
+          width:60px; height:60px;
           border-radius:12px;
           display:flex; align-items:center; justify-content:center;
           font-weight:800;
           background: linear-gradient(90deg,#6c00ff,#2575fc);
           color:#fff;
-          margin-bottom:12px;
+          margin-bottom:16px;
+          font-size: 20px;
         }
         .menu-btn {
           display:flex; gap:10px; align-items:center;
-          background:transparent; color:#d1d5db;
-          border:none; padding:8px 10px; border-radius:10px;
-          cursor:pointer; text-align:left; width:100%; font-weight:600;
+          background:transparent;
+          color:#d1d5db;
+          border:none;
+          padding:10px 12px;
+          border-radius:10px;
+          cursor:pointer;
+          text-align:left;
+          width:100%;
+          font-weight:600;
+          transition: all 0.3s ease;
+        }
+        .menu-btn:hover {
+          background:rgba(255,255,255,0.08);
         }
         .menu-btn.active {
           background: linear-gradient(90deg,#6c00ff,#2575fc);
@@ -142,59 +172,84 @@ export default function AuditResults({ results = {}, onNewAudit }) {
         }
         .report {
           flex:1;
-          max-width: 750px; /* smaller report area */
+          max-width: 900px;
           background:white;
-          border-radius:14px;
-          padding:28px;
+          border-radius:16px;
+          padding:36px 32px;
           color:#0b1220;
-          box-shadow: 0 20px 60px rgba(0,0,0,0.08);
+          box-shadow: 0 12px 40px rgba(0,0,0,0.08);
         }
         .section {
           background:#fafafa;
-          padding:18px;
-          border-radius:10px;
-          border:1px solid rgba(0,0,0,0.04);
+          padding:20px 24px;
+          border-radius:12px;
+          border:1px solid rgba(0,0,0,0.05);
+          min-height: 400px;
         }
         @media (max-width: 880px) {
-          .page { flex-direction: column; padding: 12px; padding-top: 60px; }
-          .sidebar { width:100%; display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+          .page {
+            flex-direction: column;
+            padding: 20px;
+          }
+          .sidebar {
+            width:100%;
+            display:flex;
+            flex-wrap:wrap;
+            justify-content:center;
+            position:static;
+          }
+          .report {
+            max-width:100%;
+            padding:24px 20px;
+          }
         }
       `}</style>
 
       <div className="page">
         <aside className="sidebar">
           <div className="logo">EP</div>
-          <div style={{ fontSize: 16, fontWeight: 800 }}>EngagePro Audit</div>
-          <div style={{ fontSize: 13, color: "#aab3c6", marginBottom: 12 }}>{domain || "No domain"}</div>
+          <div style={{ fontSize: 17, fontWeight: 800 }}>EngagePro Audit</div>
+          <div style={{ fontSize: 13, color: "#aab3c6", marginBottom: 14 }}>{domain || "No domain"}</div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <button className={`menu-btn ${activeTab === "overview" ? "active" : ""}`} onClick={() => setActiveTab("overview")}><FiActivity /> Overview</button>
-            <button className={`menu-btn ${activeTab === "domain" ? "active" : ""}`} onClick={() => setActiveTab("domain")}><FiGlobe /> Domain</button>
-            <button className={`menu-btn ${activeTab === "hosting" ? "active" : ""}`} onClick={() => setActiveTab("hosting")}><FiServer /> Hosting</button>
-            <button className={`menu-btn ${activeTab === "email" ? "active" : ""}`} onClick={() => setActiveTab("email")}><FiMail /> Email</button>
-            <button className={`menu-btn ${activeTab === "technology" ? "active" : ""}`} onClick={() => setActiveTab("technology")}><FiCode /> Technology</button>
-            <button className={`menu-btn ${activeTab === "wordpress" ? "active" : ""}`} onClick={() => setActiveTab("wordpress")}><FiTrendingUp /> WordPress</button>
-            <button className={`menu-btn ${activeTab === "performance" ? "active" : ""}`} onClick={() => setActiveTab("performance")}><FiZap /> Performance</button>
-            <button className={`menu-btn ${activeTab === "security" ? "active" : ""}`} onClick={() => setActiveTab("security")}><FiShield /> Security</button>
-            <button className={`menu-btn ${activeTab === "ads" ? "active" : ""}`} onClick={() => setActiveTab("ads")}><FiEye /> Ads</button>
+            {[
+              ["overview", "Overview", <FiActivity />],
+              ["domain", "Domain", <FiGlobe />],
+              ["hosting", "Hosting", <FiServer />],
+              ["email", "Email", <FiMail />],
+              ["technology", "Technology", <FiCode />],
+              ["wordpress", "WordPress", <FiTrendingUp />],
+              ["performance", "Performance", <FiZap />],
+              ["security", "Security", <FiShield />],
+              ["ads", "Ads", <FiEye />],
+            ].map(([key, label, icon]) => (
+              <button
+                key={key}
+                className={`menu-btn ${activeTab === key ? "active" : ""}`}
+                onClick={() => setActiveTab(key)}
+              >
+                {icon} {label}
+              </button>
+            ))}
           </div>
 
-          <div style={{ marginTop: 16, display: "flex", gap: 6, flexDirection: "column" }}>
+          <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: 8 }}>
             <button onClick={onNewAudit} className="menu-btn"><FiHome /> New Audit</button>
             <button onClick={exportPDF} className="menu-btn"><FiDownload /> Export PDF</button>
           </div>
         </aside>
 
         <main className="report" ref={reportRef}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 6 }}>
-            <h2 style={{ margin: 0, fontSize: 20 }}>{activeTab === "overview" ? "Overview" : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h2>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6, marginBottom: 16 }}>
+            <h2 style={{ margin: 0, fontSize: 22 }}>
+              {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+            </h2>
             <div style={{ color: "#6B7280", fontSize: 13 }}>
               {results["Audit Time"] || ""} {results["Processing Time"] ? `• ${results["Processing Time"]}` : ""}
             </div>
           </div>
 
           <div className="section">
-            {/* Overview */}
             {activeTab === "overview" && (
               <>
                 <Row label="Domain" value={domain} />
@@ -203,12 +258,13 @@ export default function AuditResults({ results = {}, onNewAudit }) {
                 <Row label="Email Provider" value={email?.Provider || "—"} />
                 <Row label="WordPress Detected" value={wordpress?.["Is WordPress"] || "No"} />
                 <Row label="SSL Status">
-                  {security?.SSL === "Valid" ? <Status ok={true} yesLabel="Valid" /> : <Status ok={false} noLabel={security?.SSL || "Unavailable"} />}
+                  {security?.SSL === "Valid"
+                    ? <Status ok={true} yesLabel="Valid" />
+                    : <Status ok={false} noLabel={security?.SSL || "Unavailable"} />}
                 </Row>
               </>
             )}
 
-            {/* Domain */}
             {activeTab === "domain" && (
               <>
                 <Row label="Registrar" value={domainInfo?.Registrar} />
@@ -218,7 +274,6 @@ export default function AuditResults({ results = {}, onNewAudit }) {
               </>
             )}
 
-            {/* Hosting */}
             {activeTab === "hosting" && (
               <>
                 <Row label="IP" value={hosting?.IP} />
@@ -227,7 +282,6 @@ export default function AuditResults({ results = {}, onNewAudit }) {
               </>
             )}
 
-            {/* Email */}
             {activeTab === "email" && (
               <>
                 <Row label="Provider" value={email?.Provider} />
@@ -236,16 +290,14 @@ export default function AuditResults({ results = {}, onNewAudit }) {
               </>
             )}
 
-            {/* Technology */}
             {activeTab === "technology" && (
               <>
-                {Object.keys(tech || {}).length
+                {Object.keys(tech).length
                   ? Object.entries(tech).map(([k, v]) => <ListRow key={k} label={k} items={v} />)
                   : <div style={{ color: "#6B7280" }}>No technologies detected</div>}
               </>
             )}
 
-            {/* WordPress */}
             {activeTab === "wordpress" && (
               <>
                 <Row label="Is WordPress" value={wordpress?.["Is WordPress"]} />
@@ -255,7 +307,6 @@ export default function AuditResults({ results = {}, onNewAudit }) {
               </>
             )}
 
-            {/* Performance */}
             {activeTab === "performance" && (
               <>
                 <Row label="Load Time" value={performance?.["Load Time"]} />
@@ -265,7 +316,6 @@ export default function AuditResults({ results = {}, onNewAudit }) {
               </>
             )}
 
-            {/* Security */}
             {activeTab === "security" && (
               <>
                 <Row label="SSL" value={security?.SSL} />
@@ -276,7 +326,6 @@ export default function AuditResults({ results = {}, onNewAudit }) {
               </>
             )}
 
-            {/* Ads */}
             {activeTab === "ads" && (
               <>
                 <ListRow label="Ad Networks" items={ads?.ad_networks || []} />
@@ -290,4 +339,3 @@ export default function AuditResults({ results = {}, onNewAudit }) {
     </>
   );
 }
-
