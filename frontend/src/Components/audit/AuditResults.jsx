@@ -69,29 +69,31 @@ export default function AuditResults({ results = {}, onNewAudit }) {
       style={{
         display: "flex",
         justifyContent: "space-between",
-        padding: isMobile ? "12px 8px" : "14px 18px",
+        padding: isMobile ? "16px 12px" : "18px 20px",
         borderBottom: "1px solid #f0f0f0",
         alignItems: "flex-start",
         background: "#fcfcfc",
         borderRadius: 8,
-        marginBottom: 8,
+        marginBottom: 12,
         flexDirection: isMobile ? "column" : "row",
-        gap: isMobile ? "4px" : "0",
+        gap: isMobile ? "6px" : "0",
       }}
     >
       <div style={{ 
         color: "#4B5563", 
         fontWeight: 600,
-        fontSize: isMobile ? "14px" : "inherit"
+        fontSize: isMobile ? "15px" : "16px",
+        minWidth: isMobile ? "100%" : "140px"
       }}>
         {label}
       </div>
       <div style={{ 
         color: "#111827", 
         fontWeight: 500,
-        fontSize: isMobile ? "13px" : "inherit",
+        fontSize: isMobile ? "14px" : "15px",
         textAlign: isMobile ? "left" : "right",
-        wordBreak: "break-word"
+        wordBreak: "break-word",
+        flex: 1
       }}>
         {value || "—"}
       </div>
@@ -100,28 +102,32 @@ export default function AuditResults({ results = {}, onNewAudit }) {
 
   const ListRow = ({ label, items }) => (
     <div style={{ 
-      padding: isMobile ? "12px 8px" : "14px 18px", 
-      borderBottom: "1px solid #f0f0f0" 
+      padding: isMobile ? "16px 12px" : "18px 20px", 
+      borderBottom: "1px solid #f0f0f0",
+      marginBottom: 12,
+      background: "#fcfcfc",
+      borderRadius: 8
     }}>
       <div style={{ 
         color: "#4B5563", 
         fontWeight: 600, 
-        marginBottom: 6,
-        fontSize: isMobile ? "14px" : "inherit"
+        marginBottom: 8,
+        fontSize: isMobile ? "15px" : "16px"
       }}>
         {label}
       </div>
       {Array.isArray(items) && items.length ? (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {items.map((item, i) => (
             <span
               key={i}
               style={{
                 background: "#F3F4F6",
-                padding: "4px 8px",
+                padding: "6px 12px",
                 borderRadius: 6,
-                fontSize: isMobile ? "12px" : "13px",
+                fontSize: isMobile ? "13px" : "14px",
                 color: "#111827",
+                border: "1px solid #E5E7EB"
               }}
             >
               {item}
@@ -129,7 +135,7 @@ export default function AuditResults({ results = {}, onNewAudit }) {
           ))}
         </div>
       ) : (
-        <span style={{ color: "#9CA3AF", fontSize: isMobile ? "13px" : "inherit" }}>
+        <span style={{ color: "#9CA3AF", fontSize: isMobile ? "14px" : "15px" }}>
           None detected
         </span>
       )}
@@ -138,40 +144,44 @@ export default function AuditResults({ results = {}, onNewAudit }) {
 
   const ObjectRow = ({ label, items }) => (
     <div style={{ 
-      padding: isMobile ? "12px 8px" : "14px 18px", 
-      borderBottom: "1px solid #f0f0f0" 
+      padding: isMobile ? "16px 12px" : "18px 20px", 
+      borderBottom: "1px solid #f0f0f0",
+      marginBottom: 12,
+      background: "#fcfcfc",
+      borderRadius: 8
     }}>
       <div style={{ 
         color: "#4B5563", 
         fontWeight: 600, 
-        marginBottom: 6,
-        fontSize: isMobile ? "14px" : "inherit"
+        marginBottom: 8,
+        fontSize: isMobile ? "15px" : "16px"
       }}>
         {label}
       </div>
       {items && Object.keys(items).length ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {Object.entries(items).map(([key, value]) => (
-            <div key={key} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <div key={key} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <div style={{ 
-                fontSize: isMobile ? "12px" : "13px", 
+                fontSize: isMobile ? "13px" : "14px", 
                 fontWeight: 600, 
                 color: "#6B7280" 
               }}>
                 {key}
               </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {Array.isArray(value) ? (
                   value.map((item, i) => (
                     <span
                       key={i}
                       style={{
                         background: "#F3F4F6",
-                        padding: "3px 6px",
+                        padding: "4px 8px",
                         borderRadius: 4,
-                        fontSize: isMobile ? "11px" : "12px",
+                        fontSize: isMobile ? "12px" : "13px",
                         color: "#111827",
-                        lineHeight: 1.2
+                        lineHeight: 1.2,
+                        border: "1px solid #E5E7EB"
                       }}
                     >
                       {item}
@@ -181,10 +191,11 @@ export default function AuditResults({ results = {}, onNewAudit }) {
                   <span
                     style={{
                       background: "#F3F4F6",
-                      padding: "3px 6px",
+                      padding: "4px 8px",
                       borderRadius: 4,
-                      fontSize: isMobile ? "11px" : "12px",
+                      fontSize: isMobile ? "12px" : "13px",
                       color: "#111827",
+                      border: "1px solid #E5E7EB"
                     }}
                   >
                     {value}
@@ -195,7 +206,7 @@ export default function AuditResults({ results = {}, onNewAudit }) {
           ))}
         </div>
       ) : (
-        <span style={{ color: "#9CA3AF", fontSize: isMobile ? "13px" : "inherit" }}>
+        <span style={{ color: "#9CA3AF", fontSize: isMobile ? "14px" : "15px" }}>
           None detected
         </span>
       )}
@@ -207,7 +218,7 @@ export default function AuditResults({ results = {}, onNewAudit }) {
     ["domain", FiGlobe, "Domain"],
     ["hosting", FiServer, "Hosting"],
     ["email", FiMail, "Email"],
-    ["technology", FiCode, "Tech"],
+    ["technology", FiCode, "Technology"],
     ["wordpress", FiTrendingUp, "WordPress"],
     ["performance", FiZap, "Performance"],
     ["security", FiShield, "Security"],
@@ -219,27 +230,28 @@ export default function AuditResults({ results = {}, onNewAudit }) {
       <style>{`
         .audit-page {
           display: flex;
-          gap: 20px;
+          gap: 24px;
           background: #f9f9ff;
           min-height: 100vh;
-          padding: 20px;
+          padding: 30px 24px;
           justify-content: center;
+          align-items: flex-start;
         }
         
         .sidebar {
           width: 280px;
           background: linear-gradient(180deg, #160423, #2b0636);
           border-radius: 16px;
-          padding: 24px 20px;
+          padding: 28px 20px;
           color: #fff;
           display: flex;
           flex-direction: column;
           justify-content: start;
           box-shadow: 0 8px 40px rgba(0,0,0,0.25);
           position: sticky;
-          top: 20px;
+          top: 30px;
           height: fit-content;
-          max-height: calc(100vh - 40px);
+          max-height: calc(100vh - 60px);
           overflow-y: auto;
         }
         
@@ -251,24 +263,25 @@ export default function AuditResults({ results = {}, onNewAudit }) {
           bottom: 0;
           background: linear-gradient(180deg, #160423, #2b0636);
           z-index: 1000;
-          padding: 20px;
+          padding: 24px;
           overflow-y: auto;
         }
         
         .menu-btn {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 12px;
           border: none;
           background: transparent;
           color: #d1d5db;
           font-weight: 600;
-          padding: 12px 14px;
+          padding: 14px 16px;
           border-radius: 10px;
           cursor: pointer;
           transition: 0.2s;
           text-align: left;
-          font-size: 14px;
+          font-size: 15px;
+          width: 100%;
         }
         
         .menu-btn:hover { background: rgba(255,255,255,0.1); }
@@ -279,38 +292,41 @@ export default function AuditResults({ results = {}, onNewAudit }) {
         
         .report {
           flex: 1;
-          max-width: 880px;
+          max-width: 900px;
           background: white;
           border-radius: 20px;
-          padding: 30px;
+          padding: 32px;
           box-shadow: 0 6px 40px rgba(0,0,0,0.05);
           height: fit-content;
+          min-height: 600px;
         }
         
         .btn-action {
           display: flex;
           align-items: center;
-          gap: 6px;
+          gap: 8px;
           background: linear-gradient(90deg, #6c00ff, #2575fc);
           border: none;
           color: white;
           font-weight: 600;
-          padding: 10px 16px;
+          padding: 12px 18px;
           border-radius: 10px;
           cursor: pointer;
           transition: 0.2s;
           font-size: 14px;
+          flex-shrink: 0;
         }
         
         .btn-action:hover {
           opacity: 0.9;
+          transform: translateY(-1px);
         }
         
         .mobile-header {
           display: none;
           justify-content: space-between;
           align-items: center;
-          padding: 16px 20px;
+          padding: 20px 16px;
           background: white;
           border-bottom: 1px solid #e5e7eb;
           position: sticky;
@@ -353,7 +369,7 @@ export default function AuditResults({ results = {}, onNewAudit }) {
           display: none;
           background: white;
           border-bottom: 1px solid #e5e7eb;
-          padding: 12px 16px;
+          padding: 14px 16px;
           gap: 8px;
           overflow-x: auto;
           position: sticky;
@@ -365,21 +381,29 @@ export default function AuditResults({ results = {}, onNewAudit }) {
           display: flex;
           align-items: center;
           gap: 6px;
-          padding: 8px 12px;
+          padding: 10px 14px;
           background: #f8fafc;
           border: 1px solid #e2e8f0;
           border-radius: 8px;
-          font-size: 12px;
+          font-size: 13px;
           font-weight: 600;
           color: #64748b;
           white-space: nowrap;
           cursor: pointer;
+          flex-shrink: 0;
         }
         
         .mobile-tab.active {
           background: linear-gradient(90deg, #6c00ff, #2575fc);
           color: white;
           border-color: #6c00ff;
+        }
+        
+        .button-group {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
         }
         
         /* Mobile Styles */
@@ -396,7 +420,7 @@ export default function AuditResults({ results = {}, onNewAudit }) {
           }
           
           .report { 
-            padding: 20px 16px; 
+            padding: 24px 16px; 
             width: 100%;
             max-width: 100%;
             border-radius: 0;
@@ -415,21 +439,25 @@ export default function AuditResults({ results = {}, onNewAudit }) {
         
         @media (max-width: 480px) {
           .report {
-            padding: 16px 12px;
+            padding: 20px 12px;
           }
           
           .mobile-tabs {
-            padding: 10px 12px;
+            padding: 12px 12px;
           }
           
           .mobile-tab {
-            padding: 6px 10px;
-            font-size: 11px;
+            padding: 8px 12px;
+            font-size: 12px;
           }
           
           .btn-action {
-            padding: 8px 12px;
+            padding: 10px 14px;
             font-size: 13px;
+          }
+          
+          .button-group {
+            gap: 8px;
           }
         }
         
@@ -537,7 +565,7 @@ export default function AuditResults({ results = {}, onNewAudit }) {
               paddingTop: "30px",
               display: "flex", 
               flexDirection: "column", 
-              gap: "10px" 
+              gap: "12px" 
             }}>
               <button className="btn-action" onClick={onNewAudit}>
                 <FiHome /> New Audit
@@ -583,7 +611,7 @@ export default function AuditResults({ results = {}, onNewAudit }) {
               paddingTop: "20px",
               display: "flex", 
               flexDirection: "column", 
-              gap: "10px" 
+              gap: "12px" 
             }}>
               <button className="btn-action" onClick={onNewAudit}>
                 <FiHome /> New Audit
@@ -599,30 +627,36 @@ export default function AuditResults({ results = {}, onNewAudit }) {
         <main className="report" ref={reportRef}>
           {!isMobile && (
             <div style={{
-              display: "flex", justifyContent: "space-between",
-              alignItems: "center", marginBottom: 30, flexWrap: "wrap", gap: 10
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 32,
+              flexWrap: "wrap",
+              gap: 16,
+              paddingBottom: 16,
+              borderBottom: "1px solid #f0f0f0"
             }}>
               <h2 style={{ 
-                fontSize: 24, 
+                fontSize: 26, 
                 fontWeight: 700, 
                 color: "#111827",
-                fontSize: isMobile ? "20px" : "24px"
+                margin: 0
               }}>
-                {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+                {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Report
               </h2>
 
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div className="button-group">
                 <button className="btn-action" onClick={onNewAudit}>
-                  <FiHome /> {isMobile ? "" : "New Audit"}
+                  <FiHome /> New Audit
                 </button>
                 <button className="btn-action" onClick={exportPDF}>
-                  <FiDownload /> {isMobile ? "" : "Export PDF"}
+                  <FiDownload /> Export PDF
                 </button>
               </div>
             </div>
           )}
 
-          <div className="section">
+          <div className="section" style={{ marginTop: isMobile ? 8 : 0 }}>
             {activeTab === "overview" && (
               <>
                 <Row label="Domain" value={domain} />
@@ -630,14 +664,17 @@ export default function AuditResults({ results = {}, onNewAudit }) {
                 <Row label="Email Provider" value={email.Provider} />
                 <Row label="WordPress Detected" value={wordpress.Detected} />
                 <Row label="SSL Status" value={security.SSL} />
+                <Row label="Performance Rating" value={performance.Rating} />
               </>
             )}
             {activeTab === "domain" && (
               <>
                 <Row label="Registrar" value={domainInfo.Registrar} />
-                <Row label="Created" value={domainInfo.Created} />
-                <Row label="Expiry" value={domainInfo.Expiry} />
+                <Row label="Created Date" value={domainInfo.Created} />
+                <Row label="Expiry Date" value={domainInfo.Expiry} />
+                <Row label="Last Updated" value={domainInfo.Updated} />
                 <ListRow label="Nameservers" items={domainInfo.Nameservers} />
+                <ObjectRow label="DNS Records" items={domainInfo["DNS Records"]} />
               </>
             )}
             {activeTab === "hosting" && (
@@ -645,6 +682,8 @@ export default function AuditResults({ results = {}, onNewAudit }) {
                 <Row label="IP Address" value={hosting["IP Address"]} />
                 <Row label="Server" value={hosting.Server} />
                 <Row label="Provider" value={hosting.Provider} />
+                <Row label="Location" value={hosting.Location} />
+                <Row label="CDN" value={hosting.CDN} />
               </>
             )}
             {activeTab === "email" && (
@@ -652,6 +691,8 @@ export default function AuditResults({ results = {}, onNewAudit }) {
                 <Row label="Provider" value={email.Provider} />
                 <ListRow label="MX Records" items={email["MX Records"]} />
                 <ObjectRow label="DNS Records" items={email["DNS Records"]} />
+                <Row label="SPF Record" value={email.SPF} />
+                <Row label="DMARC Record" value={email.DMARC} />
               </>
             )}
             {activeTab === "technology" && (
@@ -670,28 +711,39 @@ export default function AuditResults({ results = {}, onNewAudit }) {
                 <Row label="Detected" value={wordpress.Detected} />
                 <Row label="Version" value={wordpress.Version} />
                 <Row label="Theme" value={wordpress.Theme} />
+                <Row label="Active Plugins Count" value={wordpress.Plugins?.length} />
                 <ListRow label="Plugins" items={wordpress.Plugins} />
+                <Row label="WP-Admin Accessible" value={wordpress["WP-Admin"]} />
               </>
             )}
             {activeTab === "performance" && (
               <>
                 <Row label="Load Time" value={performance["Load Time"]} />
                 <Row label="Page Size" value={performance["Page Size"]} />
+                <Row label="Requests" value={performance.Requests} />
                 <Row label="Rating" value={performance.Rating} />
+                <Row label="First Contentful Paint" value={performance["First Contentful Paint"]} />
+                <Row label="Largest Contentful Paint" value={performance["Largest Contentful Paint"]} />
               </>
             )}
             {activeTab === "security" && (
               <>
-                <Row label="SSL" value={security.SSL} />
-                <Row label="TLS" value={security.TLS} />
+                <Row label="SSL Certificate" value={security.SSL} />
+                <Row label="TLS Version" value={security.TLS} />
                 <Row label="Expires" value={security.Expires} />
+                <Row label="HSTS" value={security.HSTS} />
+                <Row label="Security Headers" value={security.Headers} />
+                <ListRow label="Vulnerabilities" items={security.Vulnerabilities} />
               </>
             )}
             {activeTab === "tracking" && (
               <>
-                <ListRow label="Ad Networks" items={tracking["Ad Networks"] || []} />
-                <ListRow label="Analytics" items={tracking.Analytics || []} />
-                <ListRow label="Tracking Scripts" items={tracking["Tracking Scripts"] || []} />
+                <ListRow label="Ad Networks" items={tracking["Ad Networks"]} />
+                <ListRow label="Analytics Tools" items={tracking.Analytics} />
+                <ListRow label="Tracking Scripts" items={tracking["Tracking Scripts"]} />
+                <ListRow label="Social Media Trackers" items={tracking["Social Media"]} />
+                <ListRow label="Marketing Tools" items={tracking.Marketing} />
+                <ObjectRow label="Cookies" items={tracking.Cookies} />
               </>
             )}
           </div>
