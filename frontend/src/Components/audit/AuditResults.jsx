@@ -1,8 +1,8 @@
-// AuditResults.jsx
 import React, { useState, useEffect, useRef } from "react";
 import {
-  FiActivity, FiGlobe, FiServer, FiMail, FiCode, FiTrendingUp,
-  FiZap, FiShield, FiDownload, FiHome, FiCheck, FiX, FiEye
+  FiActivity, FiGlobe, FiServer, FiMail, FiCode,
+  FiTrendingUp, FiZap, FiShield, FiEye, FiHome, FiDownload,
+  FiMenu, FiX
 } from "react-icons/fi";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
@@ -10,25 +10,32 @@ import html2canvas from "html2canvas";
 export default function AuditResults({ results = {}, onNewAudit }) {
   const [activeTab, setActiveTab] = useState("overview");
   const [isMobile, setIsMobile] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const reportRef = useRef(null);
 
-  const payload = results?.Results ? results.Results : results || {};
+  // Extract data from the new backend structure
+  const payload = results?.Results || results || {};
   const domain = results?.Domain || payload?.Domain || "";
 
   const domainInfo = payload["Domain Info"] || {};
   const hosting = payload.Hosting || {};
   const email = payload.Email || {};
-  const tech = payload["Tech Stack"] || {};
+  const tech = payload.Technology || {};
   const wordpress = payload.WordPress || {};
   const security = payload.Security || {};
   const performance = payload.Performance || {};
-  const ads = payload.Ads || {};
+  const tracking = payload.Tracking || {};
 
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 880);
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (!mobile) setSidebarOpen(false);
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   const exportPDF = async () => {
@@ -37,300 +44,654 @@ export default function AuditResults({ results = {}, onNewAudit }) {
     reportRef.current.style.boxShadow = "none";
     try {
       const canvas = await html2canvas(reportRef.current, { scale: 2, useCORS: true });
-      const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "pt", "a4");
+      const imgData = canvas.toDataURL("image/png");
       const imgWidth = 595.28;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 0;
-      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-      heightLeft -= 841.89;
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-        heightLeft -= 841.89;
-      }
+      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
       pdf.save(`${domain || "audit"}-report.pdf`);
     } catch (e) {
-      console.error("PDF export error:", e);
+      console.error(e);
     } finally {
       reportRef.current.style.boxShadow = originalShadow;
     }
   };
 
-  const Row = ({ label, value, children }) => (
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
+  };
+
+  const Row = ({ label, value }) => (
     <div
       style={{
         display: "flex",
         justifyContent: "space-between",
-        padding: "12px 0",
-        borderBottom: "1px dashed rgba(0,0,0,0.08)",
+        padding: isMobile ? "12px 8px" : "14px 18px",
+        borderBottom: "1px solid #f0f0f0",
+        alignItems: "flex-start",
+        background: "#fcfcfc",
+        borderRadius: 8,
+        marginBottom: 8,
         flexDirection: isMobile ? "column" : "row",
-        gap: isMobile ? 6 : 0,
+        gap: isMobile ? "4px" : "0",
       }}
     >
-      <div style={{ color: "#374151", fontWeight: 600 }}>{label}</div>
-      <div style={{ color: "#111827", textAlign: isMobile ? "left" : "right" }}>
-        {children ?? (value ? String(value) : "—")}
+      <div style={{ 
+        color: "#4B5563", 
+        fontWeight: 600,
+        fontSize: isMobile ? "14px" : "inherit"
+      }}>
+        {label}
+      </div>
+      <div style={{ 
+        color: "#111827", 
+        fontWeight: 500,
+        fontSize: isMobile ? "13px" : "inherit",
+        textAlign: isMobile ? "left" : "right",
+        wordBreak: "break-word"
+      }}>
+        {value || "—"}
       </div>
     </div>
   );
 
   const ListRow = ({ label, items }) => (
-    <div style={{ padding: "12px 0", borderBottom: "1px dashed rgba(0,0,0,0.08)" }}>
-      <div style={{ color: "#374151", fontWeight: 600, marginBottom: 8 }}>{label}</div>
-      {items?.length ? (
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 8,
-            justifyContent: isMobile ? "flex-start" : "flex-end",
-          }}
-        >
-          {items.map((it, i) => (
+    <div style={{ 
+      padding: isMobile ? "12px 8px" : "14px 18px", 
+      borderBottom: "1px solid #f0f0f0" 
+    }}>
+      <div style={{ 
+        color: "#4B5563", 
+        fontWeight: 600, 
+        marginBottom: 6,
+        fontSize: isMobile ? "14px" : "inherit"
+      }}>
+        {label}
+      </div>
+      {Array.isArray(items) && items.length ? (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {items.map((item, i) => (
             <span
               key={i}
               style={{
                 background: "#F3F4F6",
-                padding: "6px 10px",
-                borderRadius: 8,
-                color: "#111",
+                padding: "4px 8px",
+                borderRadius: 6,
+                fontSize: isMobile ? "12px" : "13px",
+                color: "#111827",
               }}
             >
-              {String(it)}
+              {item}
             </span>
           ))}
         </div>
       ) : (
-        <span style={{ color: "#6B7280" }}>None detected</span>
+        <span style={{ color: "#9CA3AF", fontSize: isMobile ? "13px" : "inherit" }}>
+          None detected
+        </span>
       )}
     </div>
   );
 
-  const Status = ({ ok, yesLabel = "Yes", noLabel = "No" }) => (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-end" }}>
-      {ok ? <FiCheck style={{ color: "#10B981" }} /> : <FiX style={{ color: "#EF4444" }} />}
-      <span>{ok ? yesLabel : noLabel}</span>
+  const ObjectRow = ({ label, items }) => (
+    <div style={{ 
+      padding: isMobile ? "12px 8px" : "14px 18px", 
+      borderBottom: "1px solid #f0f0f0" 
+    }}>
+      <div style={{ 
+        color: "#4B5563", 
+        fontWeight: 600, 
+        marginBottom: 6,
+        fontSize: isMobile ? "14px" : "inherit"
+      }}>
+        {label}
+      </div>
+      {items && Object.keys(items).length ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {Object.entries(items).map(([key, value]) => (
+            <div key={key} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ 
+                fontSize: isMobile ? "12px" : "13px", 
+                fontWeight: 600, 
+                color: "#6B7280" 
+              }}>
+                {key}
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                {Array.isArray(value) ? (
+                  value.map((item, i) => (
+                    <span
+                      key={i}
+                      style={{
+                        background: "#F3F4F6",
+                        padding: "3px 6px",
+                        borderRadius: 4,
+                        fontSize: isMobile ? "11px" : "12px",
+                        color: "#111827",
+                        lineHeight: 1.2
+                      }}
+                    >
+                      {item}
+                    </span>
+                  ))
+                ) : (
+                  <span
+                    style={{
+                      background: "#F3F4F6",
+                      padding: "3px 6px",
+                      borderRadius: 4,
+                      fontSize: isMobile ? "11px" : "12px",
+                      color: "#111827",
+                    }}
+                  >
+                    {value}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <span style={{ color: "#9CA3AF", fontSize: isMobile ? "13px" : "inherit" }}>
+          None detected
+        </span>
+      )}
     </div>
   );
+
+  const tabs = [
+    ["overview", FiActivity, "Overview"],
+    ["domain", FiGlobe, "Domain"],
+    ["hosting", FiServer, "Hosting"],
+    ["email", FiMail, "Email"],
+    ["technology", FiCode, "Tech"],
+    ["wordpress", FiTrendingUp, "WordPress"],
+    ["performance", FiZap, "Performance"],
+    ["security", FiShield, "Security"],
+    ["tracking", FiEye, "Tracking"],
+  ];
 
   return (
     <>
       <style>{`
-        .page {
+        .audit-page {
           display: flex;
-          gap: 32px;
-          justify-content: center;
-          align-items: flex-start;
-          padding: 60px 20px 80px;
-          background: #f9fafb;
+          gap: 20px;
+          background: #f9f9ff;
           min-height: 100vh;
-        }
-        .sidebar {
-          width: 240px;
-          border-radius: 16px;
           padding: 20px;
-          background: linear-gradient(180deg,#1a0526,#2b0636);
-          color: #e6e6f0;
-          box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-          flex-shrink: 0;
+          justify-content: center;
+        }
+        
+        .sidebar {
+          width: 280px;
+          background: linear-gradient(180deg, #160423, #2b0636);
+          border-radius: 16px;
+          padding: 24px 20px;
+          color: #fff;
+          display: flex;
+          flex-direction: column;
+          justify-content: start;
+          box-shadow: 0 8px 40px rgba(0,0,0,0.25);
           position: sticky;
           top: 20px;
           height: fit-content;
+          max-height: calc(100vh - 40px);
+          overflow-y: auto;
         }
-        .logo {
-          width:60px; height:60px;
-          border-radius:12px;
-          display:flex; align-items:center; justify-content:center;
-          font-weight:800;
-          background: linear-gradient(90deg,#6c00ff,#2575fc);
-          color:#fff;
-          margin-bottom:16px;
-          font-size: 20px;
+        
+        .sidebar-mobile {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: linear-gradient(180deg, #160423, #2b0636);
+          z-index: 1000;
+          padding: 20px;
+          overflow-y: auto;
         }
+        
         .menu-btn {
-          display:flex; gap:10px; align-items:center;
-          background:transparent;
-          color:#d1d5db;
-          border:none;
-          padding:10px 12px;
-          border-radius:10px;
-          cursor:pointer;
-          text-align:left;
-          width:100%;
-          font-weight:600;
-          transition: all 0.3s ease;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          border: none;
+          background: transparent;
+          color: #d1d5db;
+          font-weight: 600;
+          padding: 12px 14px;
+          border-radius: 10px;
+          cursor: pointer;
+          transition: 0.2s;
+          text-align: left;
+          font-size: 14px;
         }
-        .menu-btn:hover {
-          background:rgba(255,255,255,0.08);
-        }
+        
+        .menu-btn:hover { background: rgba(255,255,255,0.1); }
         .menu-btn.active {
-          background: linear-gradient(90deg,#6c00ff,#2575fc);
-          color:white;
+          background: linear-gradient(90deg, #6c00ff, #2575fc);
+          color: white;
         }
+        
         .report {
-          flex:1;
-          max-width: 900px;
-          background:white;
-          border-radius:16px;
-          padding:36px 32px;
-          color:#0b1220;
-          box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+          flex: 1;
+          max-width: 880px;
+          background: white;
+          border-radius: 20px;
+          padding: 30px;
+          box-shadow: 0 6px 40px rgba(0,0,0,0.05);
+          height: fit-content;
         }
-        .section {
-          background:#fafafa;
-          padding:20px 24px;
-          border-radius:12px;
-          border:1px solid rgba(0,0,0,0.05);
-          min-height: 400px;
+        
+        .btn-action {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          background: linear-gradient(90deg, #6c00ff, #2575fc);
+          border: none;
+          color: white;
+          font-weight: 600;
+          padding: 10px 16px;
+          border-radius: 10px;
+          cursor: pointer;
+          transition: 0.2s;
+          font-size: 14px;
         }
-        @media (max-width: 880px) {
-          .page {
-            flex-direction: column;
-            padding: 20px;
+        
+        .btn-action:hover {
+          opacity: 0.9;
+        }
+        
+        .mobile-header {
+          display: none;
+          justify-content: space-between;
+          align-items: center;
+          padding: 16px 20px;
+          background: white;
+          border-bottom: 1px solid #e5e7eb;
+          position: sticky;
+          top: 0;
+          z-index: 100;
+        }
+        
+        .mobile-menu-btn {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          background: linear-gradient(90deg, #6c00ff, #2575fc);
+          border: none;
+          color: white;
+          padding: 10px 14px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-weight: 600;
+          font-size: 14px;
+        }
+        
+        .close-sidebar {
+          position: absolute;
+          top: 20px;
+          right: 20px;
+          background: rgba(255,255,255,0.2);
+          border: none;
+          color: white;
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          font-size: 18px;
+        }
+        
+        .mobile-tabs {
+          display: none;
+          background: white;
+          border-bottom: 1px solid #e5e7eb;
+          padding: 12px 16px;
+          gap: 8px;
+          overflow-x: auto;
+          position: sticky;
+          top: 73px;
+          z-index: 90;
+        }
+        
+        .mobile-tab {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 12px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          font-size: 12px;
+          font-weight: 600;
+          color: #64748b;
+          white-space: nowrap;
+          cursor: pointer;
+        }
+        
+        .mobile-tab.active {
+          background: linear-gradient(90deg, #6c00ff, #2575fc);
+          color: white;
+          border-color: #6c00ff;
+        }
+        
+        /* Mobile Styles */
+        @media (max-width: 900px) {
+          .audit-page { 
+            flex-direction: column; 
+            padding: 0;
+            gap: 0;
+            background: white;
           }
-          .sidebar {
-            width:100%;
-            display:flex;
-            flex-wrap:wrap;
-            justify-content:center;
-            position:static;
+          
+          .sidebar { 
+            display: none;
           }
+          
+          .report { 
+            padding: 20px 16px; 
+            width: 100%;
+            max-width: 100%;
+            border-radius: 0;
+            box-shadow: none;
+            min-height: calc(100vh - 140px);
+          }
+          
+          .mobile-header {
+            display: flex;
+          }
+          
+          .mobile-tabs {
+            display: flex;
+          }
+        }
+        
+        @media (max-width: 480px) {
           .report {
-            max-width:100%;
-            padding:24px 20px;
+            padding: 16px 12px;
           }
+          
+          .mobile-tabs {
+            padding: 10px 12px;
+          }
+          
+          .mobile-tab {
+            padding: 6px 10px;
+            font-size: 11px;
+          }
+          
+          .btn-action {
+            padding: 8px 12px;
+            font-size: 13px;
+          }
+        }
+        
+        /* Scrollbar styling */
+        .sidebar::-webkit-scrollbar {
+          width: 6px;
+        }
+        
+        .sidebar::-webkit-scrollbar-track {
+          background: rgba(255,255,255,0.1);
+          border-radius: 3px;
+        }
+        
+        .sidebar::-webkit-scrollbar-thumb {
+          background: rgba(255,255,255,0.3);
+          border-radius: 3px;
+        }
+        
+        .sidebar::-webkit-scrollbar-thumb:hover {
+          background: rgba(255,255,255,0.5);
         }
       `}</style>
 
-      <div className="page">
-        <aside className="sidebar">
-          <div className="logo">EP</div>
-          <div style={{ fontSize: 17, fontWeight: 800 }}>EngagePro Audit</div>
-          <div style={{ fontSize: 13, color: "#aab3c6", marginBottom: 14 }}>{domain || "No domain"}</div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {[
-              ["overview", "Overview", <FiActivity />],
-              ["domain", "Domain", <FiGlobe />],
-              ["hosting", "Hosting", <FiServer />],
-              ["email", "Email", <FiMail />],
-              ["technology", "Technology", <FiCode />],
-              ["wordpress", "WordPress", <FiTrendingUp />],
-              ["performance", "Performance", <FiZap />],
-              ["security", "Security", <FiShield />],
-              ["ads", "Ads", <FiEye />],
-            ].map(([key, label, icon]) => (
-              <button
-                key={key}
-                className={`menu-btn ${activeTab === key ? "active" : ""}`}
-                onClick={() => setActiveTab(key)}
-              >
-                {icon} {label}
-              </button>
-            ))}
-          </div>
-
-          <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: 8 }}>
-            <button onClick={onNewAudit} className="menu-btn"><FiHome /> New Audit</button>
-            <button onClick={exportPDF} className="menu-btn"><FiDownload /> Export PDF</button>
-          </div>
-        </aside>
-
-        <main className="report" ref={reportRef}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6, marginBottom: 16 }}>
-            <h2 style={{ margin: 0, fontSize: 22 }}>
-              {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
-            </h2>
-            <div style={{ color: "#6B7280", fontSize: 13 }}>
-              {results["Audit Time"] || ""} {results["Processing Time"] ? `• ${results["Processing Time"]}` : ""}
+      {/* Mobile Header */}
+      {isMobile && (
+        <div className="mobile-header">
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 10,
+              background: "linear-gradient(135deg, #6c00ff, #2575fc)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 14, fontWeight: 800, color: "white"
+            }}>EP</div>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 700 }}>EngagePro Audit</div>
+              <div style={{ fontSize: 12, color: "#6B7280" }}>{domain || "No domain"}</div>
             </div>
           </div>
+          
+          <button 
+            className="mobile-menu-btn"
+            onClick={() => setSidebarOpen(true)}
+          >
+            <FiMenu /> Menu
+          </button>
+        </div>
+      )}
+
+      {/* Mobile Tabs */}
+      {isMobile && (
+        <div className="mobile-tabs">
+          {tabs.map(([key, Icon, label]) => (
+            <button
+              key={key}
+              className={`mobile-tab ${activeTab === key ? "active" : ""}`}
+              onClick={() => handleTabChange(key)}
+            >
+              <Icon size={14} /> {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Mobile Sidebar Overlay */}
+      {isMobile && sidebarOpen && (
+        <div className="sidebar-mobile">
+          <button 
+            className="close-sidebar"
+            onClick={() => setSidebarOpen(false)}
+          >
+            <FiX />
+          </button>
+          
+          <div style={{ paddingTop: "40px" }}>
+            <div style={{
+              width: 60, height: 60, borderRadius: 16,
+              background: "linear-gradient(135deg, #6c00ff, #2575fc)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 20, fontWeight: 800, marginBottom: 16, marginLeft: "auto", marginRight: "auto"
+            }}>EP</div>
+
+            <div style={{ 
+              fontSize: 20, fontWeight: 700, 
+              marginBottom: 4, textAlign: "center" 
+            }}>EngagePro Audit</div>
+            <div style={{ 
+              fontSize: 14, color: "#bbb", 
+              marginBottom: 30, textAlign: "center" 
+            }}>{domain || "No domain"}</div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {tabs.map(([key, Icon, label]) => (
+                <button
+                  key={key}
+                  className={`menu-btn ${activeTab === key ? "active" : ""}`}
+                  onClick={() => handleTabChange(key)}
+                >
+                  <Icon /> {label}
+                </button>
+              ))}
+            </div>
+            
+            <div style={{ 
+              marginTop: "auto", 
+              paddingTop: "30px",
+              display: "flex", 
+              flexDirection: "column", 
+              gap: "10px" 
+            }}>
+              <button className="btn-action" onClick={onNewAudit}>
+                <FiHome /> New Audit
+              </button>
+              <button className="btn-action" onClick={exportPDF}>
+                <FiDownload /> Export PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="audit-page">
+        {/* Desktop Sidebar */}
+        {!isMobile && (
+          <aside className="sidebar">
+            <div>
+              <div style={{
+                width: 64, height: 64, borderRadius: 16,
+                background: "linear-gradient(135deg, #6c00ff, #2575fc)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 22, fontWeight: 800, marginBottom: 16
+              }}>EP</div>
+
+              <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>EngagePro Audit</div>
+              <div style={{ fontSize: 13, color: "#bbb", marginBottom: 24 }}>{domain || "No domain"}</div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {tabs.map(([key, Icon, label]) => (
+                  <button
+                    key={key}
+                    className={`menu-btn ${activeTab === key ? "active" : ""}`}
+                    onClick={() => setActiveTab(key)}
+                  >
+                    <Icon /> {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            <div style={{ 
+              marginTop: "auto", 
+              paddingTop: "20px",
+              display: "flex", 
+              flexDirection: "column", 
+              gap: "10px" 
+            }}>
+              <button className="btn-action" onClick={onNewAudit}>
+                <FiHome /> New Audit
+              </button>
+              <button className="btn-action" onClick={exportPDF}>
+                <FiDownload /> Export PDF
+              </button>
+            </div>
+          </aside>
+        )}
+
+        {/* Main Content */}
+        <main className="report" ref={reportRef}>
+          {!isMobile && (
+            <div style={{
+              display: "flex", justifyContent: "space-between",
+              alignItems: "center", marginBottom: 30, flexWrap: "wrap", gap: 10
+            }}>
+              <h2 style={{ 
+                fontSize: 24, 
+                fontWeight: 700, 
+                color: "#111827",
+                fontSize: isMobile ? "20px" : "24px"
+              }}>
+                {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+              </h2>
+
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <button className="btn-action" onClick={onNewAudit}>
+                  <FiHome /> {isMobile ? "" : "New Audit"}
+                </button>
+                <button className="btn-action" onClick={exportPDF}>
+                  <FiDownload /> {isMobile ? "" : "Export PDF"}
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="section">
             {activeTab === "overview" && (
               <>
                 <Row label="Domain" value={domain} />
-                <Row label="Processing Time" value={results["Processing Time"]} />
-                <Row label="Hosting Provider" value={hosting?.Provider || "—"} />
-                <Row label="Email Provider" value={email?.Provider || "—"} />
-                <Row label="WordPress Detected" value={wordpress?.["Is WordPress"] || "No"} />
-                <Row label="SSL Status">
-                  {security?.SSL === "Valid"
-                    ? <Status ok={true} yesLabel="Valid" />
-                    : <Status ok={false} noLabel={security?.SSL || "Unavailable"} />}
-                </Row>
+                <Row label="Hosting Provider" value={hosting.Provider} />
+                <Row label="Email Provider" value={email.Provider} />
+                <Row label="WordPress Detected" value={wordpress.Detected} />
+                <Row label="SSL Status" value={security.SSL} />
               </>
             )}
-
             {activeTab === "domain" && (
               <>
-                <Row label="Registrar" value={domainInfo?.Registrar} />
-                <Row label="Created" value={domainInfo?.Created} />
-                <Row label="Expiry" value={domainInfo?.Expiry} />
-                <ListRow label="Nameservers" items={domainInfo?.Nameservers || []} />
+                <Row label="Registrar" value={domainInfo.Registrar} />
+                <Row label="Created" value={domainInfo.Created} />
+                <Row label="Expiry" value={domainInfo.Expiry} />
+                <ListRow label="Nameservers" items={domainInfo.Nameservers} />
               </>
             )}
-
             {activeTab === "hosting" && (
               <>
-                <Row label="IP" value={hosting?.IP} />
-                <Row label="Server" value={hosting?.Server} />
-                <Row label="Provider" value={hosting?.Provider} />
+                <Row label="IP Address" value={hosting["IP Address"]} />
+                <Row label="Server" value={hosting.Server} />
+                <Row label="Provider" value={hosting.Provider} />
               </>
             )}
-
             {activeTab === "email" && (
               <>
-                <Row label="Provider" value={email?.Provider} />
-                <ListRow label="MX" items={email?.MX || []} />
-                <ListRow label="TXT" items={email?.TXT || []} />
+                <Row label="Provider" value={email.Provider} />
+                <ListRow label="MX Records" items={email["MX Records"]} />
+                <ObjectRow label="DNS Records" items={email["DNS Records"]} />
               </>
             )}
-
             {activeTab === "technology" && (
               <>
-                {Object.keys(tech).length
-                  ? Object.entries(tech).map(([k, v]) => <ListRow key={k} label={k} items={v} />)
-                  : <div style={{ color: "#6B7280" }}>No technologies detected</div>}
+                {Object.entries(tech).map(([key, val]) => (
+                  <ListRow 
+                    key={key} 
+                    label={key.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} 
+                    items={val} 
+                  />
+                ))}
               </>
             )}
-
             {activeTab === "wordpress" && (
               <>
-                <Row label="Is WordPress" value={wordpress?.["Is WordPress"]} />
-                <Row label="Version" value={wordpress?.Version} />
-                <Row label="Theme" value={wordpress?.Theme} />
-                <ListRow label="Plugins" items={wordpress?.Plugins || []} />
+                <Row label="Detected" value={wordpress.Detected} />
+                <Row label="Version" value={wordpress.Version} />
+                <Row label="Theme" value={wordpress.Theme} />
+                <ListRow label="Plugins" items={wordpress.Plugins} />
               </>
             )}
-
             {activeTab === "performance" && (
               <>
-                <Row label="Load Time" value={performance?.["Load Time"]} />
-                <Row label="Size" value={performance?.Size} />
-                <Row label="Score" value={performance?.Score} />
-                <Row label="URL" value={performance?.URL} />
+                <Row label="Load Time" value={performance["Load Time"]} />
+                <Row label="Page Size" value={performance["Page Size"]} />
+                <Row label="Rating" value={performance.Rating} />
               </>
             )}
-
             {activeTab === "security" && (
               <>
-                <Row label="SSL" value={security?.SSL} />
-                <Row label="TLS" value={security?.TLS} />
-                <Row label="Expiry" value={security?.Expiry} />
-                <Row label="HSTS" value={security?.HSTS === "Yes" ? "Enabled" : "Disabled"} />
-                <Row label="CSP" value={security?.CSP === "Yes" ? "Enabled" : "Disabled"} />
+                <Row label="SSL" value={security.SSL} />
+                <Row label="TLS" value={security.TLS} />
+                <Row label="Expires" value={security.Expires} />
               </>
             )}
-
-            {activeTab === "ads" && (
+            {activeTab === "tracking" && (
               <>
-                <ListRow label="Ad Networks" items={ads?.ad_networks || []} />
-                <ListRow label="Analytics" items={ads?.analytics || []} />
-                <ListRow label="Tracking Scripts" items={ads?.tracking_scripts_found || []} />
+                <ListRow label="Ad Networks" items={tracking["Ad Networks"] || []} />
+                <ListRow label="Analytics" items={tracking.Analytics || []} />
+                <ListRow label="Tracking Scripts" items={tracking["Tracking Scripts"] || []} />
               </>
             )}
           </div>
