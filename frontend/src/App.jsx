@@ -41,8 +41,11 @@ function App() {
     const progressInterval = simulateProgress()
 
     try {
+      // Updated to use your Render backend URL
       const response = await fetch(`https://comprihensive-audit-backend.onrender.com/audit/${domain}`)
-      if (!response.ok) throw new Error(`Server error: ${response.status}`)
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`)
+      }
       const data = await response.json()
 
       setProgress(100)
@@ -53,7 +56,7 @@ function App() {
       }, 800)
     } catch (err) {
       console.error('Error:', err)
-      setError('Failed to connect to the backend. Please ensure FastAPI is running on port 8000.')
+      setError('Failed to connect to the backend. Please ensure the backend is running.')
       setLoading(false)
     } finally {
       clearInterval(progressInterval)
@@ -147,11 +150,10 @@ const MinimalMountainExplorer = ({ progress, currentStep }) => {
     { label: "Email", height: 90, baseWidth: 110, color: "#06B6D4", position: 32 },
     { label: "Tech", height: 110, baseWidth: 130, color: "#10B981", position: 44 },
     { label: "WordPress", height: 85, baseWidth: 100, color: "#F59E0B", position: 56 },
-    { label: "Ads", height: 95, baseWidth: 120, color: "#EC4899", position: 68 },
-    { label: "Security", height: 130, baseWidth: 150, color: "#EF4444", position: 80 },
-    { label: "Performance", height: 100, baseWidth: 130, color: "#6366F1", position: 92 },
-    { label: "Analysis", height: 115, baseWidth: 140, color: "#14B8A6", position: 104 },
-    { label: "Report", height: 75, baseWidth: 90, color: "#84CC16", position: 116 }
+    { label: "Security", height: 130, baseWidth: 150, color: "#EF4444", position: 68 },
+    { label: "Performance", height: 100, baseWidth: 130, color: "#6366F1", position: 80 },
+    { label: "Analysis", height: 115, baseWidth: 140, color: "#14B8A6", position: 92 },
+    { label: "Report", height: 75, baseWidth: 90, color: "#84CC16", position: 104 }
   ]
 
   // Walking animation
