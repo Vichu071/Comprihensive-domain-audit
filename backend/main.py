@@ -18,15 +18,21 @@ from datetime import datetime
 import concurrent.futures
 from collections import Counter
 
-# Disable SSL warnings
+# ============================================================
+# ⚙️ Setup & Config
+# ============================================================
+
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s",
+    handlers=[logging.StreamHandler()]
+)
 logger = logging.getLogger("domain-audit")
 
-# --- App setup ---
-app = FastAPI(title="Domain Audit API", version="2.7 (optimized)")
+app = FastAPI(title="Domain Audit API", version="3.0 Stable")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -35,17 +41,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- DNS Resolver ---
 resolver = dns.resolver.Resolver()
 resolver.nameservers = ["8.8.8.8", "1.1.1.1"]
 resolver.timeout = 4
 resolver.lifetime = 8
 
-# --- HTTP Session ---
 session = requests.Session()
 retries = Retry(total=3, backoff_factor=0.7, status_forcelist=[500, 502, 503, 504])
 session.mount("http://", HTTPAdapter(max_retries=retries))
 session.mount("https://", HTTPAdapter(max_retries=retries))
+
 
 # ============================================================
 # 🧩 Utility Helpers
@@ -56,20 +61,20 @@ def normalize_domain(domain: str) -> str:
     d = re.sub(r"^www\.", "", d)
     return re.sub(r"/.*$", "", d)
 
+
 def fetch_with_fallback(domain: str, path: str = "/", timeout: int = 10) -> Tuple[str, str]:
-    """Fetch HTTPS → fallback HTTP."""
     for proto in ("https", "http"):
         url = f"{proto}://{domain}{path}"
         try:
             resp = session.get(url, timeout=timeout, verify=False, allow_redirects=True)
-            if resp.status_code < 400 and len(resp.text) > 200:
+            if resp.status_code < 400 and len(resp.text) > 100:
                 return resp.text, url
         except Exception:
             continue
     return "", ""
 
+
 def safe_head(domain: str, timeout: int = 6):
-    """Fetch headers quickly with HEAD/GET fallback"""
     for proto in ("https", "http"):
         try:
             r = session.head(f"{proto}://{domain}", timeout=timeout, verify=False)
@@ -83,6 +88,7 @@ def safe_head(domain: str, timeout: int = 6):
     except:
         return {}
 
+
 # ============================================================
 # 🧠 WHOIS INFO
 # ============================================================
@@ -92,14 +98,19 @@ def get_whois_info(domain: str) -> Dict[str, Any]:
     try:
         w = whois.whois(domain)
         info["Registrar"] = w.registrar or "Unknown"
-        c = w.creation_date[0] if isinstance(w.creation_date, list) else w.creation_date
-        e = w.expiration_date[0] if isinstance(w.expiration_date, list) else w.expiration_date
-        info["Created"] = str(c)[:10] if c else "Unknown"
-        info["Expiry"] = str(e)[:10] if e else "Unknown"
+        c = w.creation_date
+        if isinstance(c, list): c = c[0]
+        if isinstance(c, datetime): c = c.strftime("%Y-%m-%d")
+        e = w.expiration_date
+        if isinstance(e, list): e = e[0]
+        if isinstance(e, datetime): e = e.strftime("%Y-%m-%d")
+        info["Created"] = c or "Unknown"
+        info["Expiry"] = e or "Unknown"
         info["Nameservers"] = [ns for ns in getattr(w, "name_servers", []) if ns] or ["Unknown"]
     except Exception as e:
         logger.debug(f"WHOIS failed for {domain}: {e}")
     return info
+
 
 # ============================================================
 # ☁️ Hosting Info
@@ -125,13 +136,17 @@ def detect_hosting_provider(ip: str, server: str = "") -> str:
         pass
     return "Generic Hosting"
 
+
 def get_hosting_info(domain: str) -> Dict[str, Any]:
     data = {"IP": "Unknown", "Server": "Unknown", "Provider": "Unknown"}
     try:
         try:
             ip = str(resolver.resolve(domain, "A")[0])
         except:
-            ip = socket.gethostbyname(domain)
+            try:
+                ip = str(resolver.resolve(domain, "AAAA")[0])
+            except:
+                ip = socket.gethostbyname(domain)
         data["IP"] = ip
         headers = safe_head(domain)
         server = headers.get("Server", "")
@@ -140,6 +155,7 @@ def get_hosting_info(domain: str) -> Dict[str, Any]:
     except Exception as e:
         logger.debug(f"Hosting lookup failed: {e}")
     return data
+
 
 # ============================================================
 # 📧 Email Detection
@@ -151,6 +167,7 @@ def get_mx(domain: str):
     except:
         return []
 
+
 def get_txt(domain: str):
     try:
         recs = []
@@ -159,6 +176,7 @@ def get_txt(domain: str):
         return recs
     except:
         return []
+
 
 def detect_email_provider(mx: List[str], txt: List[str]) -> str:
     joined = " ".join(mx + txt).lower()
@@ -173,6 +191,7 @@ def detect_email_provider(mx: List[str], txt: List[str]) -> str:
     if mx:
         return "Custom Email Provider"
     return "No Email Service"
+
 
 # ============================================================
 # ⚙️ Technology Detection
@@ -200,6 +219,7 @@ def detect_tech(domain: str):
         tech.setdefault("ecommerce", []).append("Shopify")
     return tech
 
+
 # ============================================================
 # 📰 WordPress Detection
 # ============================================================
@@ -210,16 +230,12 @@ def detect_wordpress(domain: str):
     if not html or "wp-content" not in html.lower():
         return wp
     wp["Is WordPress"] = "Yes"
-    # Version
     match = re.search(r'content="WordPress\s*([\d\.]+)"', html, re.I)
     if match:
         wp["Version"] = match.group(1)
-    # Theme
     theme = re.search(r'/wp-content/themes/([^/"]+)/', html)
     if theme:
         wp["Theme"] = theme.group(1).title()
-    # Plugins
-    plugins = []
     for name, key in {
         "Yoast SEO": "yoast",
         "WooCommerce": "woocommerce",
@@ -230,9 +246,9 @@ def detect_wordpress(domain: str):
         "WP Super Cache": "wp-super-cache",
     }.items():
         if key in html:
-            plugins.append(name)
-    wp["Plugins"] = plugins
+            wp["Plugins"].append(name)
     return wp
+
 
 # ============================================================
 # 🔒 Security
@@ -249,16 +265,17 @@ def audit_security(domain: str):
                     sec["SSL"] = "Valid"
                     sec["Expiry"] = cert.get("notAfter", "")
                     sec["TLS"] = ssock.version()
-    except:
+    except Exception as e:
         sec["SSL"] = "Unavailable"
-
-    # Security headers
+        logger.debug(f"SSL error: {e}")
     headers = safe_head(domain)
-    if "strict-transport-security" in [h.lower() for h in headers]:
+    lower_headers = [h.lower() for h in headers]
+    if "strict-transport-security" in lower_headers:
         sec["HSTS"] = "Yes"
-    if "content-security-policy" in [h.lower() for h in headers]:
+    if "content-security-policy" in lower_headers:
         sec["CSP"] = "Yes"
     return sec
+
 
 # ============================================================
 # 🚀 Performance
@@ -268,11 +285,12 @@ def analyze_performance(domain: str):
     start = time.time()
     html, url = fetch_with_fallback(domain)
     if not html:
-        return {"Status": "Failed"}
+        return {"Status": "Failed", "Load Time": "-", "Size": "-", "Score": "Poor"}
     load_time = round(time.time() - start, 2)
     size = len(html.encode()) / 1024
     score = "Excellent" if load_time < 1 else "Good" if load_time < 2 else "Average" if load_time < 4 else "Poor"
-    return {"Load Time": f"{load_time}s", "Size": f"{size:.1f}KB", "Score": score, "URL": url}
+    return {"Status": "OK", "Load Time": f"{load_time}s", "Size": f"{size:.1f}KB", "Score": score, "URL": url}
+
 
 # ============================================================
 # 🧩 Parallel Execution
@@ -290,9 +308,14 @@ def run_parallel(domain: str):
             "security": ex.submit(audit_security, domain),
             "perf": ex.submit(analyze_performance, domain),
         }
-        results = {k: f.result() for k, f in futures.items()}
+        results = {}
+        for k, f in futures.items():
+            try:
+                results[k] = f.result(timeout=20)
+            except Exception as e:
+                results[k] = {"error": str(e)}
 
-    email_provider = detect_email_provider(results["mx"], results["txt"])
+    email_provider = detect_email_provider(results.get("mx", []), results.get("txt", []))
     return {
         "Domain Info": results["whois"],
         "Hosting": results["hosting"],
@@ -303,13 +326,15 @@ def run_parallel(domain: str):
         "Performance": results["perf"],
     }
 
+
 # ============================================================
 # 🌐 Routes
 # ============================================================
 
 @app.get("/")
 def home():
-    return {"message": "Domain Audit API v2.7 Optimized", "status": "running"}
+    return {"message": "Domain Audit API v3.0", "status": "running"}
+
 
 @app.get("/audit/{domain}")
 def audit(domain: str):
@@ -319,17 +344,22 @@ def audit(domain: str):
         return JSONResponse({"error": "Invalid domain"}, status_code=400)
     try:
         data = run_parallel(d)
-        data["Domain"] = d
-        data["Audit Time"] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%SZ")
-        data["Processing Time"] = f"{time.time() - start:.2f}s"
-        return JSONResponse(data)
+        result = {
+            "Domain": d,
+            "Audit Time": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%SZ"),
+            "Processing Time": f"{time.time() - start:.2f}s",
+            "Results": data,
+        }
+        return JSONResponse(result)
     except Exception as e:
         logger.exception(f"Audit failed: {e}")
         return JSONResponse({"error": str(e)}, status_code=500)
 
+
 @app.get("/health")
 def health():
     return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
+
 
 if __name__ == "__main__":
     import uvicorn
