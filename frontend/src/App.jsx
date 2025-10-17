@@ -16,6 +16,18 @@ function App() {
   const [currentStep, setCurrentStep] = useState(0)
   const [error, setError] = useState('')
 
+  const auditSteps = [
+    "Initializing Domain Analysis",
+    "Checking WHOIS Information",
+    "Analyzing Hosting Infrastructure",
+    "Verifying Email Configuration",
+    "Detecting Technology Stack",
+    "Scanning WordPress Details",
+    "Auditing Security Protocols",
+    "Testing Performance Metrics",
+    "Compiling Final Report"
+  ]
+
   const simulateProgress = () => {
     setProgress(0)
     setCurrentStep(0)
@@ -28,7 +40,7 @@ function App() {
         }
         return prev + 10
       })
-      setCurrentStep(prev => Math.min(prev + 1, 9))
+      setCurrentStep(prev => Math.min(prev + 1, 8))
     }, 800)
 
     return interval
@@ -41,7 +53,6 @@ function App() {
     const progressInterval = simulateProgress()
 
     try {
-      // Updated to use your Render backend URL
       const response = await fetch(`https://comprihensive-audit-backend.onrender.com/audit/${domain}`)
       if (!response.ok) {
         throw new Error(`Server error: ${response.status}`)
@@ -49,7 +60,7 @@ function App() {
       const data = await response.json()
 
       setProgress(100)
-      setCurrentStep(9)
+      setCurrentStep(8)
       setTimeout(() => {
         setAuditResults(data)
         setLoading(false)
@@ -71,7 +82,7 @@ function App() {
   }
 
   return (
-    <div className="App" style={{ fontFamily: 'Inter, sans-serif', color: '#1e293b', background: '#fff' }}>
+    <div className="App" style={{ fontFamily: "'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif", color: '#1e293b', background: '#fff' }}>
       <Navbar />
 
       {/* Hero section */}
@@ -81,8 +92,8 @@ function App() {
         </>
       )}
 
-      {/* Minimal Mountain Explorer Loader */}
-      {loading && <MinimalMountainExplorer progress={progress} currentStep={currentStep} />}
+      {/* Premium Loader */}
+      {loading && <PremiumLoader progress={progress} currentStep={currentStep} steps={auditSteps} />}
 
       {/* Error display */}
       {error && !loading && (
@@ -138,590 +149,471 @@ function App() {
 }
 
 /* ==========================
-   MINIMAL MOUNTAIN EXPLORER LOADER
+   PREMIUM LOADER COMPONENT
 ========================== */
-const MinimalMountainExplorer = ({ progress, currentStep }) => {
-  const [isWalking, setIsWalking] = useState(false)
-  const [characterPosition, setCharacterPosition] = useState(0)
+const PremiumLoader = ({ progress, currentStep, steps }) => {
+  const [pulse, setPulse] = useState(false)
 
-  const mountains = [
-    { label: "Domain", height: 80, baseWidth: 100, color: "#3B82F6", position: 8 },
-    { label: "Hosting", height: 120, baseWidth: 140, color: "#8B5CF6", position: 20 },
-    { label: "Email", height: 90, baseWidth: 110, color: "#06B6D4", position: 32 },
-    { label: "Tech", height: 110, baseWidth: 130, color: "#10B981", position: 44 },
-    { label: "WordPress", height: 85, baseWidth: 100, color: "#F59E0B", position: 56 },
-    { label: "Security", height: 130, baseWidth: 150, color: "#EF4444", position: 68 },
-    { label: "Performance", height: 100, baseWidth: 130, color: "#6366F1", position: 80 },
-    { label: "Analysis", height: 115, baseWidth: 140, color: "#14B8A6", position: 92 },
-    { label: "Report", height: 75, baseWidth: 90, color: "#84CC16", position: 104 }
-  ]
-
-  // Walking animation
   useEffect(() => {
-    const walkInterval = setInterval(() => {
-      setIsWalking(prev => !prev)
-    }, 500)
-    return () => clearInterval(walkInterval)
+    const pulseInterval = setInterval(() => {
+      setPulse(prev => !prev)
+    }, 2000)
+    return () => clearInterval(pulseInterval)
   }, [])
-
-  // Smooth character movement
-  useEffect(() => {
-    const targetPosition = mountains[currentStep]?.position || 0
-    setCharacterPosition(targetPosition)
-  }, [currentStep, mountains])
 
   return (
     <div
       style={{
-        background: 'linear-gradient(180deg, #0f172a 0%, #1e3a8a 30%, #3b82f6 70%, #60a5fa 100%)',
+        background: 'linear-gradient(135deg, #0f0f23 0%, #1a1a2e 25%, #2d1b69 50%, #0f0f23 100%)',
         minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingTop: '80px', // Space for navbar
+        paddingTop: '80px',
         paddingBottom: '2rem',
-        fontFamily: '"Inter", sans-serif',
+        fontFamily: "'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif",
         position: 'relative',
         overflow: 'hidden'
       }}
     >
-      {/* Sun */}
+      {/* Animated Background Elements */}
       <div
         style={{
           position: 'absolute',
-          top: '60px',
-          right: '8%',
-          width: '70px',
-          height: '70px',
-          background: 'radial-gradient(circle, #fef3c7 0%, #f59e0b 70%)',
+          top: '10%',
+          left: '5%',
+          width: '400px',
+          height: '400px',
+          background: 'radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, rgba(168, 85, 247, 0) 70%)',
           borderRadius: '50%',
-          boxShadow: '0 0 50px #f59e0b, 0 0 100px rgba(245, 158, 11, 0.5)',
-          animation: 'pulseSun 8s ease-in-out infinite',
-          zIndex: 1
-        }}
-      />
-
-      {/* Moon */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '100px',
-          left: '10%',
-          width: '50px',
-          height: '50px',
-          background: 'radial-gradient(circle, #f8fafc 0%, #cbd5e1 70%)',
-          borderRadius: '50%',
-          boxShadow: '0 0 40px rgba(248, 250, 252, 0.8), 0 0 80px rgba(248, 250, 252, 0.4)',
-          animation: 'floatMoon 12s ease-in-out infinite',
-          zIndex: 1
-        }}
-      >
-        {/* Moon craters */}
-        <div style={{
-          position: 'absolute',
-          top: '15px',
-          left: '20px',
-          width: '8px',
-          height: '8px',
-          background: '#94a3b8',
-          borderRadius: '50%',
-          opacity: 0.6
-        }} />
-        <div style={{
-          position: 'absolute',
-          top: '30px',
-          left: '10px',
-          width: '5px',
-          height: '5px',
-          background: '#94a3b8',
-          borderRadius: '50%',
-          opacity: 0.5
-        }} />
-        <div style={{
-          position: 'absolute',
-          top: '25px',
-          right: '15px',
-          width: '6px',
-          height: '6px',
-          background: '#94a3b8',
-          borderRadius: '50%',
-          opacity: 0.7
-        }} />
-      </div>
-
-      {/* Clouds */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '80px',
-          left: '-100px',
-          width: '120px',
-          height: '40px',
-          background: 'rgba(255,255,255,0.95)',
-          borderRadius: '50px',
-          boxShadow: '20px 15px 0 0 rgba(255,255,255,0.9)',
-          animation: 'moveCloud 25s linear infinite',
-          zIndex: 2
+          animation: 'float 8s ease-in-out infinite',
+          filter: 'blur(20px)'
         }}
       />
       <div
         style={{
           position: 'absolute',
-          top: '140px',
-          right: '-80px',
-          width: '100px',
-          height: '35px',
-          background: 'rgba(255,255,255,0.85)',
-          borderRadius: '40px',
-          animation: 'moveCloud 30s linear infinite 5s',
-          zIndex: 2
-        }}
-      />
-
-      {/* Birds */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '120px',
-          left: '15%',
-          fontSize: '24px',
-          opacity: 0.7,
-          animation: 'flyBird 18s linear infinite',
-          zIndex: 2
-        }}
-      >
-        🕊️
-      </div>
-      <div
-        style={{
-          position: 'absolute',
-          top: '80px',
-          right: '25%',
-          fontSize: '20px',
-          opacity: 0.6,
-          animation: 'flyBird 15s linear infinite 3s',
-          zIndex: 2
-        }}
-      >
-        🕊️
-      </div>
-
-      {/* Transparent Game Container */}
-      <div
-        style={{
-          background: 'rgba(255, 255, 255, 0.1)',
-          backdropFilter: 'blur(10px)',
-          borderRadius: '20px',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          padding: '2rem',
-          width: 'min(90%, 800px)',
+          bottom: '5%',
+          right: '5%',
+          width: '300px',
           height: '300px',
+          background: 'radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0) 70%)',
+          borderRadius: '50%',
+          animation: 'float 10s ease-in-out infinite 2s',
+          filter: 'blur(15px)'
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '600px',
+          height: '600px',
+          background: 'radial-gradient(circle, rgba(124, 58, 237, 0.05) 0%, rgba(124, 58, 237, 0) 70%)',
+          borderRadius: '50%',
+          animation: 'pulse 6s ease-in-out infinite',
+          filter: 'blur(30px)'
+        }}
+      />
+
+      {/* Grid Pattern */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundImage: `
+            linear-gradient(rgba(168, 85, 247, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(168, 85, 247, 0.03) 1px, transparent 1px)
+          `,
+          backgroundSize: '50px 50px',
+          opacity: 0.4
+        }}
+      />
+
+      {/* Main Loader Container */}
+      <div
+        style={{
+          background: 'rgba(15, 15, 35, 0.7)',
+          backdropFilter: 'blur(20px)',
+          borderRadius: '28px',
+          border: '1px solid rgba(168, 85, 247, 0.2)',
+          padding: '3.5rem 3rem',
+          width: 'min(90%, 560px)',
+          boxShadow: `
+            0 25px 50px rgba(0, 0, 0, 0.25),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1)
+          `,
           position: 'relative',
-          zIndex: 3,
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
+          zIndex: 10
         }}
       >
-        {/* Mountain Scene */}
+        {/* Logo */}
         <div
           style={{
-            position: 'relative',
-            height: '100%',
-            width: '100%',
-            background: 'transparent',
-            borderRadius: '12px',
-            overflow: 'hidden'
+            display: 'flex',
+            justifyContent: 'center',
+            marginBottom: '2.5rem'
           }}
         >
-          {/* Ground */}
           <div
             style={{
-              position: 'absolute',
-              bottom: '0',
-              left: '0',
-              right: '0',
-              height: '40px',
-              background: 'linear-gradient(180deg, #166534, #15803d)',
-              borderTop: '3px solid #22c55e',
-              zIndex: 4
-            }}
-          />
-
-          {/* Mountains */}
-          {mountains.map((mountain, index) => (
-            <div
-              key={index}
-              style={{
-                position: 'absolute',
-                bottom: '40px',
-                left: `${mountain.position}%`,
-                transform: 'translateX(-50%)',
-                zIndex: currentStep >= index ? 5 : 3,
-                opacity: currentStep >= index ? 1 : 0.3,
-                transition: 'all 1.2s ease'
-              }}
-            >
-              {/* Mountain Body */}
-              <div
-                style={{
-                  width: '0',
-                  height: '0',
-                  borderLeft: `${mountain.baseWidth / 2}px solid transparent`,
-                  borderRight: `${mountain.baseWidth / 2}px solid transparent`,
-                  borderBottom: `${mountain.height}px solid ${mountain.color}`,
-                  filter: `drop-shadow(0 4px 8px ${mountain.color}40)`
-                }}
-              >
-                {/* Snow Cap */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '-8px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: `${mountain.baseWidth * 0.6}px`,
-                    height: '15px',
-                    background: 'linear-gradient(180deg, #f0f9ff, #e0f2fe)',
-                    borderRadius: '50%',
-                    boxShadow: '0 2px 4px rgba(255,255,255,0.5)'
-                  }}
-                />
-                
-                {/* Mountain Texture */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '30%',
-                    left: '30%',
-                    width: '20px',
-                    height: '8px',
-                    background: 'rgba(0,0,0,0.1)',
-                    borderRadius: '4px',
-                    transform: 'rotate(45deg)'
-                  }}
-                />
-              </div>
-
-              {/* Mountain Label */}
-              <div
-                style={{
-                  position: 'absolute',
-                  top: `${mountain.height + 10}px`,
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  fontSize: '0.7rem',
-                  fontWeight: '600',
-                  color: mountain.color,
-                  background: 'rgba(255,255,255,0.9)',
-                  padding: '2px 8px',
-                  borderRadius: '8px',
-                  whiteSpace: 'nowrap',
-                  opacity: currentStep === index ? 1 : 0,
-                  transition: 'opacity 0.5s ease',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                  zIndex: 6
-                }}
-              >
-                {mountain.label}
-              </div>
-            </div>
-          ))}
-
-          {/* Explorer Character */}
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '40px',
-              left: `${characterPosition}%`,
-              transform: `translateX(-50%) translateY(${isWalking ? '-5px' : '0px'})`,
-              transition: 'left 1.8s cubic-bezier(0.4, 0, 0.2, 1)',
-              zIndex: 10
+              width: '90px',
+              height: '90px',
+              background: 'linear-gradient(135deg, #8b5cf6, #a855f7)',
+              borderRadius: '22px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: `
+                0 15px 35px rgba(139, 92, 246, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2)
+              `,
+              transform: pulse ? 'scale(1.05)' : 'scale(1)',
+              transition: 'transform 0.5s ease',
+              position: 'relative',
+              overflow: 'hidden'
             }}
           >
-            {/* Character Body */}
-            <div
-              style={{
-                width: '24px',
-                height: '36px',
-                background: 'linear-gradient(180deg, #7c3aed, #5b21b6)',
-                borderRadius: '6px 6px 3px 3px',
-                position: 'relative',
-                boxShadow: '0 4px 8px rgba(0,0,0,0.3)'
-              }}
-            >
-              {/* Head */}
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '-12px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  width: '20px',
-                  height: '20px',
-                  background: '#fbbf24',
-                  borderRadius: '50%',
-                  border: '2px solid #f59e0b'
-                }}
-              >
-                {/* Explorer Hat */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '-6px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: '22px',
-                    height: '6px',
-                    background: '#dc2626',
-                    borderRadius: '10px 10px 2px 2px'
-                  }}
-                />
-                
-                {/* Eyes */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '6px',
-                    left: '4px',
-                    width: '3px',
-                    height: '3px',
-                    background: '#1f2937',
-                    borderRadius: '50%',
-                    animation: 'blink 3s infinite'
-                  }}
-                />
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '6px',
-                    right: '4px',
-                    width: '3px',
-                    height: '3px',
-                    background: '#1f2937',
-                    borderRadius: '50%',
-                    animation: 'blink 3s infinite 1.5s'
-                  }}
-                />
-              </div>
-
-              {/* Backpack */}
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '4px',
-                  left: '-6px',
-                  width: '8px',
-                  height: '12px',
-                  background: 'linear-gradient(180deg, #92400e, #78350f)',
-                  borderRadius: '3px 1px 1px 3px',
-                  border: '1px solid #78350f'
-                }}
-              />
-
-              {/* Magnifying Glass */}
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '6px',
-                  right: '-14px',
-                  transform: isWalking ? 'rotate(10deg)' : 'rotate(0deg)',
-                  transition: 'transform 0.5s ease'
-                }}
-              >
-                <div
-                  style={{
-                    width: '12px',
-                    height: '12px',
-                    border: '2px solid #374151',
-                    borderRadius: '50%',
-                    background: 'rgba(59, 130, 246, 0.3)',
-                    position: 'relative'
-                  }}
-                >
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '2px',
-                      right: '2px',
-                      width: '3px',
-                      height: '3px',
-                      background: 'rgba(255,255,255,0.8)',
-                      borderRadius: '50%'
-                    }}
-                  />
-                </div>
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '10px',
-                    right: '-6px',
-                    width: '8px',
-                    height: '2px',
-                    background: '#374151',
-                    borderRadius: '1px',
-                    transform: 'rotate(45deg)'
-                  }}
-                />
-              </div>
-
-              {/* Arms */}
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '10px',
-                  left: '-6px',
-                  width: '6px',
-                  height: '16px',
-                  background: '#5b21b6',
-                  borderRadius: '3px',
-                  transform: isWalking ? 'rotate(-20deg)' : 'rotate(-10deg)',
-                  transition: 'transform 0.5s ease'
-                }}
-              />
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '10px',
-                  right: '-6px',
-                  width: '6px',
-                  height: '16px',
-                  background: '#5b21b6',
-                  borderRadius: '3px',
-                  transform: isWalking ? 'rotate(20deg)' : 'rotate(10deg)',
-                  transition: 'transform 0.5s ease'
-                }}
-              />
-
-              {/* Legs - Walking Animation */}
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: '-8px',
-                  left: '3px',
-                  width: '5px',
-                  height: '12px',
-                  background: '#431407',
-                  borderRadius: '2px 2px 0 0',
-                  transform: isWalking ? 'rotate(10deg) translateY(-2px)' : 'rotate(-5deg)',
-                  transition: 'all 0.5s ease'
-                }}
-              />
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: '-8px',
-                  right: '3px',
-                  width: '5px',
-                  height: '12px',
-                  background: '#431407',
-                  borderRadius: '2px 2px 0 0',
-                  transform: isWalking ? 'rotate(-10deg) translateY(-2px)' : 'rotate(5deg)',
-                  transition: 'all 0.5s ease'
-                }}
-              />
-            </div>
-
-            {/* Walking Shadow */}
             <div
               style={{
                 position: 'absolute',
-                bottom: '-12px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: '16px',
-                height: '4px',
-                background: 'rgba(0,0,0,0.3)',
-                borderRadius: '50%',
-                opacity: isWalking ? 0.4 : 0.6,
-                transition: 'all 0.5s ease'
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0))',
+                opacity: 0.6
+              }}
+            />
+            <svg
+              width="42"
+              height="42"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}
+            >
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+              <polyline points="7.5 4.21 12 6.81 16.5 4.21" />
+              <polyline points="7.5 19.79 7.5 14.6 3 12" />
+              <polyline points="21 12 16.5 14.6 16.5 19.79" />
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+              <line x1="12" y1="22.08" x2="12" y2="12" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Title */}
+        <h2
+          style={{
+            textAlign: 'center',
+            fontSize: '2.25rem',
+            fontWeight: '700',
+            background: 'linear-gradient(135deg, #e9d5ff, #c4b5fd, #a855f7)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            marginBottom: '0.75rem',
+            letterSpacing: '-0.025em'
+          }}
+        >
+          Domain Audit
+        </h2>
+
+        <p
+          style={{
+            textAlign: 'center',
+            color: '#cbd5e1',
+            fontSize: '1.125rem',
+            marginBottom: '3rem',
+            fontWeight: '400',
+            letterSpacing: '0.025em'
+          }}
+        >
+          Comprehensive analysis in progress
+        </p>
+
+        {/* Progress Bar */}
+        <div
+          style={{
+            background: 'rgba(30, 30, 60, 0.8)',
+            borderRadius: '16px',
+            height: '12px',
+            marginBottom: '2rem',
+            overflow: 'hidden',
+            border: '1px solid rgba(168, 85, 247, 0.1)',
+            boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.3)'
+          }}
+        >
+          <div
+            style={{
+              background: 'linear-gradient(90deg, #8b5cf6, #a855f7, #d946ef)',
+              height: '100%',
+              width: `${progress}%`,
+              borderRadius: '16px',
+              transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: '0 0 20px rgba(168, 85, 247, 0.4)'
+            }}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                top: '0',
+                left: '0',
+                right: '0',
+                bottom: '0',
+                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+                animation: 'shimmer 2s infinite',
+                transform: 'skewX(-20deg)'
               }}
             />
           </div>
+        </div>
 
-          {/* Progress Indicator */}
-          <div
+        {/* Progress Text */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '2.5rem'
+          }}
+        >
+          <span
             style={{
-              position: 'absolute',
-              top: '10px',
-              right: '10px',
-              background: 'rgba(255, 255, 255, 0.9)',
-              padding: '4px 12px',
-              borderRadius: '15px',
-              fontSize: '0.8rem',
+              fontSize: '1rem',
               fontWeight: '600',
-              color: '#1e40af',
-              fontFamily: '"Inter", sans-serif',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-              border: '1px solid rgba(255,255,255,0.3)',
-              zIndex: 10
+              color: '#e9d5ff',
+              letterSpacing: '0.05em'
             }}
           >
-            {progress}%
+            {progress}% Complete
+          </span>
+          <span
+            style={{
+              fontSize: '0.875rem',
+              color: '#94a3b8',
+              fontWeight: '500'
+            }}
+          >
+            Step {currentStep + 1} of {steps.length}
+          </span>
+        </div>
+
+        {/* Current Step */}
+        <div
+          style={{
+            background: 'rgba(30, 30, 60, 0.6)',
+            border: '1px solid rgba(168, 85, 247, 0.2)',
+            borderRadius: '16px',
+            padding: '1.5rem',
+            marginBottom: '2rem',
+            backdropFilter: 'blur(10px)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)'
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem'
+            }}
+          >
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                background: 'linear-gradient(135deg, #8b5cf6, #a855f7)',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                boxShadow: '0 4px 12px rgba(168, 85, 247, 0.3)'
+              }}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="white"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </div>
+            <div
+              style={{
+                flex: 1
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '1.125rem',
+                  fontWeight: '600',
+                  color: '#f8fafc',
+                  marginBottom: '0.5rem',
+                  letterSpacing: '0.025em'
+                }}
+              >
+                {steps[currentStep]}
+              </div>
+              <div
+                style={{
+                  fontSize: '0.875rem',
+                  color: '#cbd5e1',
+                  fontWeight: '400'
+                }}
+              >
+                Processing domain infrastructure data...
+              </div>
+            </div>
           </div>
+        </div>
+
+        {/* Loading Animation */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '0.75rem',
+            marginBottom: '2.5rem'
+          }}
+        >
+          {[0, 1, 2].map((dot) => (
+            <div
+              key={dot}
+              style={{
+                width: '12px',
+                height: '12px',
+                background: 'linear-gradient(135deg, #8b5cf6, #a855f7)',
+                borderRadius: '50%',
+                animation: `bounce 1.4s infinite ${dot * 0.16}s`,
+                boxShadow: '0 0 10px rgba(168, 85, 247, 0.5)'
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Status Indicators */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '1rem'
+          }}
+        >
+          {[
+            { label: 'Security Scan', color: '#10b981' },
+            { label: 'Performance', color: '#3b82f6' },
+            { label: 'Technology', color: '#8b5cf6' },
+            { label: 'Infrastructure', color: '#f59e0b' }
+          ].map((item, index) => (
+            <div
+              key={index}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                padding: '0.875rem',
+                background: 'rgba(30, 30, 60, 0.6)',
+                borderRadius: '12px',
+                border: '1px solid rgba(168, 85, 247, 0.1)',
+                transition: 'all 0.3s ease'
+              }}
+            >
+              <div
+                style={{
+                  width: '10px',
+                  height: '10px',
+                  background: currentStep > index + 1 ? item.color : '#475569',
+                  borderRadius: '50%',
+                  transition: 'all 0.3s ease',
+                  boxShadow: currentStep > index + 1 ? `0 0 8px ${item.color}` : 'none'
+                }}
+              />
+              <span
+                style={{
+                  fontSize: '0.875rem',
+                  color: currentStep > index + 1 ? '#f8fafc' : '#64748b',
+                  fontWeight: currentStep > index + 1 ? '600' : '500',
+                  transition: 'all 0.3s ease',
+                  letterSpacing: '0.025em'
+                }}
+              >
+                {item.label}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
 
       <style jsx>{`
-        @keyframes pulseSun {
-          0%, 100% { 
-            transform: scale(1) rotate(0deg); 
-            box-shadow: 0 0 50px #f59e0b, 0 0 100px rgba(245, 158, 11, 0.5);
-          }
-          50% { 
-            transform: scale(1.1) rotate(5deg); 
-            box-shadow: 0 0 70px #f59e0b, 0 0 140px rgba(245, 158, 11, 0.7);
-          }
-        }
-
-        @keyframes floatMoon {
+        @keyframes float {
           0%, 100% { 
             transform: translateY(0px) rotate(0deg); 
           }
-          33% { 
-            transform: translateY(-10px) rotate(120deg); 
-          }
-          66% { 
-            transform: translateY(5px) rotate(240deg); 
+          50% { 
+            transform: translateY(-25px) rotate(5deg); 
           }
         }
 
-        @keyframes moveCloud {
-          0% { transform: translateX(-100px); }
-          100% { transform: translateX(calc(100vw + 100px)); }
-        }
-
-        @keyframes flyBird {
-          0% { 
-            transform: translateX(-100px) translateY(0px) scaleX(1); 
-          }
-          25% { 
-            transform: translateX(25vw) translateY(-15px) scaleX(1); 
+        @keyframes pulse {
+          0%, 100% { 
+            opacity: 0.3;
+            transform: translate(-50%, -50%) scale(1);
           }
           50% { 
-            transform: translateX(50vw) translateY(5px) scaleX(-1); 
-          }
-          75% { 
-            transform: translateX(75vw) translateY(-10px) scaleX(-1); 
-          }
-          100% { 
-            transform: translateX(calc(100vw + 100px)) translateY(0px) scaleX(-1); 
+            opacity: 0.6;
+            transform: translate(-50%, -50%) scale(1.1);
           }
         }
 
-        @keyframes blink {
-          0%, 90%, 100% { opacity: 1; }
-          95% { opacity: 0; }
+        @keyframes shimmer {
+          0% { transform: translateX(-100%) skewX(-20deg); }
+          100% { transform: translateX(200%) skewX(-20deg); }
+        }
+
+        @keyframes bounce {
+          0%, 80%, 100% {
+            transform: scale(0.8);
+            opacity: 0.5;
+          }
+          40% {
+            transform: scale(1.2);
+            opacity: 1;
+          }
         }
 
         /* Mobile Responsive */
         @media (max-width: 768px) {
-          .mountain-scene {
-            height: 200px;
+          .premium-loader-container {
+            padding: 2rem 1.5rem;
+            margin: 1rem;
           }
         }
 
         @media (max-width: 480px) {
-          .mountain-scene {
-            height: 150px;
+          .premium-loader-container {
+            padding: 1.5rem 1rem;
+          }
+          
+          .status-indicators {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>
