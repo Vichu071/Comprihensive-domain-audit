@@ -16,7 +16,6 @@ import time
 import urllib3
 from datetime import datetime
 import concurrent.futures
-from collections import Counter
 
 # ============================================================
 # ⚙️ Setup & Config
@@ -31,7 +30,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("domain-audit")
 
-app = FastAPI(title="Domain Audit API", version="3.0 Stable")
+app = FastAPI(title="Domain Audit API", version="3.1 Stable")
 
 app.add_middleware(
     CORSMiddleware,
@@ -53,7 +52,7 @@ session.mount("https://", HTTPAdapter(max_retries=retries))
 
 
 # ============================================================
-# 🧩 Utility Helpers
+# 🧩 Helpers
 # ============================================================
 
 def normalize_domain(domain: str) -> str:
@@ -63,6 +62,7 @@ def normalize_domain(domain: str) -> str:
 
 
 def fetch_with_fallback(domain: str, path: str = "/", timeout: int = 10) -> Tuple[str, str]:
+    """Fetch page HTML from https/http with fallback."""
     for proto in ("https", "http"):
         url = f"{proto}://{domain}{path}"
         try:
@@ -75,6 +75,7 @@ def fetch_with_fallback(domain: str, path: str = "/", timeout: int = 10) -> Tupl
 
 
 def safe_head(domain: str, timeout: int = 6):
+    """Return headers safely."""
     for proto in ("https", "http"):
         try:
             r = session.head(f"{proto}://{domain}", timeout=timeout, verify=False)
@@ -143,10 +144,7 @@ def get_hosting_info(domain: str) -> Dict[str, Any]:
         try:
             ip = str(resolver.resolve(domain, "A")[0])
         except:
-            try:
-                ip = str(resolver.resolve(domain, "AAAA")[0])
-            except:
-                ip = socket.gethostbyname(domain)
+            ip = socket.gethostbyname(domain)
         data["IP"] = ip
         headers = safe_head(domain)
         server = headers.get("Server", "")
@@ -285,7 +283,7 @@ def analyze_performance(domain: str):
     start = time.time()
     html, url = fetch_with_fallback(domain)
     if not html:
-        return {"Status": "Failed", "Load Time": "-", "Size": "-", "Score": "Poor"}
+        return {"Status": "Failed", "Load Time": "-", "Size": "-", "Score": "Poor", "URL": "-"}
     load_time = round(time.time() - start, 2)
     size = len(html.encode()) / 1024
     score = "Excellent" if load_time < 1 else "Good" if load_time < 2 else "Average" if load_time < 4 else "Poor"
@@ -333,7 +331,7 @@ def run_parallel(domain: str):
 
 @app.get("/")
 def home():
-    return {"message": "Domain Audit API v3.0", "status": "running"}
+    return {"message": "Domain Audit API v3.1", "status": "running"}
 
 
 @app.get("/audit/{domain}")
