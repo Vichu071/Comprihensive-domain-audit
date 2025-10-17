@@ -30,18 +30,24 @@ export default function AuditResults({ results = {}, onNewAudit }) {
 
   const tabs = [
     { id: "overview", label: "Overview", icon: <FiActivity /> },
-    { id: "domain", label: "Domain Details", icon: <FiGlobe /> },
+    { id: "domain", label: "Domain Info", icon: <FiGlobe /> },
     { id: "hosting", label: "Hosting", icon: <FiServer /> },
-    { id: "email", label: "Email Setup", icon: <FiMail /> },
+    { id: "email", label: "Email", icon: <FiMail /> },
     { id: "technology", label: "Technology", icon: <FiCode /> },
     { id: "wordpress", label: "WordPress", icon: <FiTrendingUp /> },
     { id: "performance", label: "Performance", icon: <FiZap /> },
     { id: "security", label: "Security", icon: <FiShield /> },
-    { id: "ads", label: "Ads & Trackers", icon: <FiEye /> },
   ];
 
-  // Extract results data - handle both direct results and nested Results object
-  const auditData = results.Results || results;
+  // Extract the actual results from the backend response
+  const backendData = results.Results || {};
+  const domainInfo = backendData["Domain Info"] || {};
+  const hostingInfo = backendData.Hosting || {};
+  const emailInfo = backendData.Email || {};
+  const techStack = backendData["Tech Stack"] || {};
+  const wordpressInfo = backendData.WordPress || {};
+  const securityInfo = backendData.Security || {};
+  const performanceInfo = backendData.Performance || {};
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 880);
@@ -81,7 +87,7 @@ export default function AuditResults({ results = {}, onNewAudit }) {
         heightLeft -= pageHeight;
       }
 
-      pdf.save(`${auditData.domain || "audit"}-report.pdf`);
+      pdf.save(`${results.Domain || "audit"}-report.pdf`);
     } catch (error) {
       console.error("PDF export failed:", error);
     } finally {
@@ -182,7 +188,7 @@ export default function AuditResults({ results = {}, onNewAudit }) {
   );
 
   const renderTabContent = () => {
-    if (!auditData || Object.keys(auditData).length === 0) {
+    if (!results || Object.keys(results).length === 0) {
       return (
         <div style={{ 
           textAlign: "center", 
@@ -206,20 +212,20 @@ export default function AuditResults({ results = {}, onNewAudit }) {
       case "overview":
         return (
           <>
-            <Row label="Domain" value={auditData.domain} />
+            <Row label="Domain" value={results.Domain} />
             <Row label="Overall Score">
-              {auditData.performance?.score && (
-                <span className="score-badge">{auditData.performance.score}</span>
+              {performanceInfo.Score && (
+                <span className="score-badge">{performanceInfo.Score}</span>
               )}
             </Row>
-            <Row label="Processing Time" value={auditData.processing_time_seconds ? `${auditData.processing_time_seconds}s` : "—"} />
-            <Row label="Hosting Provider" value={auditData.hosting?.hosting_provider} />
-            <Row label="Email Provider" value={auditData.email?.provider} />
+            <Row label="Processing Time" value={results["Processing Time"]} />
+            <Row label="Hosting Provider" value={hostingInfo.Provider} />
+            <Row label="Email Provider" value={emailInfo.Provider} />
             <Row label="WordPress Detected">
-              {auditData.wordpress?.is_wp ? "Yes" : "No"}
+              {wordpressInfo["Is WordPress"] === "Yes" ? "Yes" : "No"}
             </Row>
             <Row label="SSL Status">
-              {auditData.security?.ssl_valid ? (
+              {securityInfo.SSL === "Valid" ? (
                 <Status valid={true} label="Valid" />
               ) : (
                 <Status valid={false} label="Invalid/Missing" />
@@ -229,54 +235,37 @@ export default function AuditResults({ results = {}, onNewAudit }) {
         );
 
       case "domain":
-        return auditData.domain_details ? (
+        return (
           <>
-            <Row label="Registrar" value={auditData.domain_details.registrar} />
-            <Row label="Creation Date" value={auditData.domain_details.creation_date} />
-            <Row label="Expiry Date" value={auditData.domain_details.expiry_date} />
-            <Row label="Updated Date" value={auditData.domain_details.updated_date} />
-            <ListRow label="Name Servers" items={auditData.domain_details.name_servers} />
+            <Row label="Registrar" value={domainInfo.Registrar} />
+            <Row label="Creation Date" value={domainInfo.Created} />
+            <Row label="Expiry Date" value={domainInfo.Expiry} />
+            <ListRow label="Name Servers" items={domainInfo.Nameservers} />
           </>
-        ) : (
-          <div style={{ textAlign: "center", color: "#6B7280", padding: "20px" }}>
-            No domain details available
-          </div>
         );
 
       case "hosting":
-        return auditData.hosting ? (
+        return (
           <>
-            <ListRow label="IP Addresses" items={auditData.hosting.ips} />
-            <Row label="Server" value={auditData.hosting.server} />
-            <Row label="X-Powered-By" value={auditData.hosting.x_powered_by} />
-            <Row label="Hosting Provider" value={auditData.hosting.hosting_provider} />
-            <Row label="Reverse Hostname" value={auditData.hosting.reverse_hostname} />
-            <ListRow label="Resolver Nameservers" items={auditData.hosting.resolver} />
+            <Row label="IP Address" value={hostingInfo.IP} />
+            <Row label="Server" value={hostingInfo.Server} />
+            <Row label="Hosting Provider" value={hostingInfo.Provider} />
           </>
-        ) : (
-          <div style={{ textAlign: "center", color: "#6B7280", padding: "20px" }}>
-            No hosting information available
-          </div>
         );
 
       case "email":
-        return auditData.email ? (
+        return (
           <>
-            <Row label="Email Provider" value={auditData.email.provider} />
-            <ListRow label="MX Records" items={auditData.email.mx} />
-            <ListRow label="TXT Records" items={auditData.email.txt} />
-            <ListRow label="Found Email Addresses" items={auditData.email.found_emails} />
+            <Row label="Email Provider" value={emailInfo.Provider} />
+            <ListRow label="MX Records" items={emailInfo.MX} />
+            <ListRow label="TXT Records" items={emailInfo.TXT} />
           </>
-        ) : (
-          <div style={{ textAlign: "center", color: "#6B7280", padding: "20px" }}>
-            No email information available
-          </div>
         );
 
       case "technology":
-        return auditData.technology && Object.keys(auditData.technology).length > 0 ? (
+        return Object.keys(techStack).length > 0 ? (
           <>
-            {Object.entries(auditData.technology).map(([category, technologies]) => (
+            {Object.entries(techStack).map(([category, technologies]) => (
               <ListRow 
                 key={category} 
                 label={category.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')} 
@@ -291,78 +280,55 @@ export default function AuditResults({ results = {}, onNewAudit }) {
         );
 
       case "wordpress":
-        return auditData.wordpress ? (
+        return (
           <>
             <Row label="WordPress Detected">
-              {auditData.wordpress.is_wp ? "Yes" : "No"}
+              {wordpressInfo["Is WordPress"] === "Yes" ? "Yes" : "No"}
             </Row>
-            <Row label="Version" value={auditData.wordpress.version} />
-            <Row label="Theme" value={auditData.wordpress.theme} />
-            <ListRow label="Plugins" items={auditData.wordpress.plugins} />
+            <Row label="Version" value={wordpressInfo.Version} />
+            <Row label="Theme" value={wordpressInfo.Theme} />
+            <ListRow label="Plugins" items={wordpressInfo.Plugins} />
           </>
-        ) : (
-          <div style={{ textAlign: "center", color: "#6B7280", padding: "20px" }}>
-            No WordPress information available
-          </div>
         );
 
       case "performance":
-        return auditData.performance ? (
+        return (
           <>
             <Row label="Performance Score">
-              {auditData.performance.score && (
-                <span className="score-badge">{auditData.performance.score}</span>
+              {performanceInfo.Score && (
+                <span className="score-badge">{performanceInfo.Score}</span>
               )}
             </Row>
-            <Row label="Load Time" value={auditData.performance.load_time} />
-            <Row label="Page Size" value={auditData.performance.page_size_kb ? `${auditData.performance.page_size_kb} KB` : "—"} />
-            <Row label="Final URL" value={auditData.performance.url} />
+            <Row label="Load Time" value={performanceInfo["Load Time"]} />
+            <Row label="Page Size" value={performanceInfo.Size} />
+            <Row label="Status" value={performanceInfo.Status} />
+            {performanceInfo.URL && (
+              <Row label="Final URL" value={performanceInfo.URL} />
+            )}
           </>
-        ) : (
-          <div style={{ textAlign: "center", color: "#6B7280", padding: "20px" }}>
-            No performance data available
-          </div>
         );
 
       case "security":
-        return auditData.security ? (
+        return (
           <>
-            <Row label="SSL Valid">
-              {auditData.security.ssl_valid ? (
+            <Row label="SSL Status">
+              {securityInfo.SSL === "Valid" ? (
                 <Status valid={true} label="Valid" />
+              ) : securityInfo.SSL === "Unavailable" ? (
+                <Status valid={false} label="Unavailable" />
               ) : (
-                <Status valid={false} label="Invalid/Missing" />
+                <span>{securityInfo.SSL}</span>
               )}
             </Row>
-            <Row label="SSL Expiry" value={auditData.security.ssl_expiry} />
-            <Row label="TLS Version" value={auditData.security.tls_version} />
+            <Row label="SSL Expiry" value={securityInfo.Expiry} />
+            <Row label="TLS Version" value={securityInfo.TLS} />
             <Row label="HSTS">
-              {auditData.security.headers?.hsts ? "Enabled" : "Disabled"}
+              {securityInfo.HSTS === "Yes" ? "Enabled" : "Disabled"}
             </Row>
-            <Row label="X-Frame-Options" value={auditData.security.headers?.x_frame_options} />
-            <Row label="X-Content-Type-Options" value={auditData.security.headers?.x_content_type_options} />
-            <Row label="Content-Security-Policy">
-              {auditData.security.headers?.csp ? "Enabled" : "Disabled"}
+            <Row label="Content Security Policy">
+              {securityInfo.CSP === "Yes" ? "Enabled" : "Disabled"}
             </Row>
-            <Row label="Referrer-Policy" value={auditData.security.headers?.referrer_policy} />
           </>
-        ) : (
-          <div style={{ textAlign: "center", color: "#6B7280", padding: "20px" }}>
-            No security information available
-          </div>
-        );
-
-      case "ads":
-        return auditData.ads ? (
-          <>
-            <ListRow label="Ad Networks" items={auditData.ads.ad_networks} />
-            <ListRow label="Analytics Tools" items={auditData.ads.analytics} />
-            <ListRow label="Tracking Scripts" items={auditData.ads.tracking_scripts_found} />
-          </>
-        ) : (
-          <div style={{ textAlign: "center", color: "#6B7280", padding: "20px" }}>
-            No ad tracking information available
-          </div>
         );
 
       default:
@@ -525,7 +491,7 @@ export default function AuditResults({ results = {}, onNewAudit }) {
               EngagePro Audit
             </div>
             <div style={{ fontSize: 13, color: "#9ca3af", marginBottom: 12 }}>
-              {auditData?.domain || "No domain"}
+              {results.Domain || "No domain"}
             </div>
 
             <div className="menu">
@@ -562,13 +528,13 @@ export default function AuditResults({ results = {}, onNewAudit }) {
               alignItems: isMobile ? "flex-start" : "center"
             }}>
               <h2>{tabs.find((t) => t.id === activeTab)?.label}</h2>
-              {auditData.audit_date && (
+              {results["Audit Time"] && (
                 <div style={{ 
                   color: "#6B7280", 
                   fontSize: isMobile ? "12px" : "14px",
                   alignSelf: isMobile ? "flex-end" : "center"
                 }}>
-                  Audited: {new Date(auditData.audit_date).toLocaleDateString()}
+                  Audited: {results["Audit Time"]}
                 </div>
               )}
             </div>
