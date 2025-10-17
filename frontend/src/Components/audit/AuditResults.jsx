@@ -1,273 +1,276 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
-  FiActivity,
-  FiServer,
-  FiMail,
-  FiShield,
-  FiTrendingUp,
-  FiLayers,
+  FiActivity, FiZap, FiShield, FiTrendingUp, FiLayers, FiMail,
+  FiDownload, FiHome, FiGlobe, FiServer, FiCode, FiEye, FiCheck, FiX
 } from "react-icons/fi";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 const API_BASE = "https://comprihensive-audit-backend.onrender.com";
 
-const AuditResults = () => {
+export default function AuditResults() {
   const [domain, setDomain] = useState("");
-  const [data, setData] = useState(null);
+  const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState("overview");
+  const [isMobile, setIsMobile] = useState(false);
+  const reportRef = useRef(null);
 
+  const tabs = [
+    { id: "overview", label: "Overview", icon: <FiActivity /> },
+    { id: "domain", label: "Domain Details", icon: <FiGlobe /> },
+    { id: "hosting", label: "Hosting", icon: <FiServer /> },
+    { id: "email", label: "Email Setup", icon: <FiMail /> },
+    { id: "technology", label: "Technology", icon: <FiCode /> },
+    { id: "wordpress", label: "WordPress", icon: <FiTrendingUp /> },
+    { id: "performance", label: "Performance", icon: <FiZap /> },
+    { id: "security", label: "Security", icon: <FiShield /> },
+    { id: "ads", label: "Ads & Trackers", icon: <FiEye /> },
+  ];
+
+  // 🔹 Fetch audit results
   const handleAudit = async () => {
     if (!domain.trim()) return;
     setLoading(true);
     setError("");
-    setData(null);
+    setResults(null);
     try {
       const res = await fetch(`${API_BASE}/audit/${domain}`);
-      const result = await res.json();
-      if (res.ok && result.Results) {
-        setData(result);
+      const data = await res.json();
+      if (res.ok && data.Results) {
+        // Flatten structure for display
+        setResults({
+          domain: data.Domain,
+          processing_time_seconds: data["Processing Time"],
+          ...data.Results
+        });
       } else {
-        setError(result.error || "Failed to fetch audit data");
+        setError(data.error || "Failed to fetch audit results.");
       }
-    } catch (err) {
-      setError("Unable to connect to audit API.");
+    } catch {
+      setError("Unable to connect to the audit API.");
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="audit-wrapper">
-      <style>{`
-        .audit-wrapper {
-          min-height: 100vh;
-          background: #f8fafc;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          padding: 4rem 1rem;
-          font-family: "Inter", sans-serif;
-        }
-        .audit-container {
-          max-width: 900px;
-          width: 100%;
-          background: #fff;
-          border-radius: 20px;
-          box-shadow: 0 6px 25px rgba(0,0,0,0.08);
-          padding: 2rem;
-        }
-        h1 {
-          text-align: center;
-          font-size: 2rem;
-          font-weight: 700;
-          color: #1e293b;
-          margin-bottom: 2rem;
-        }
-        .input-area {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-          align-items: center;
-          justify-content: center;
-          margin-bottom: 2rem;
-        }
-        .input-area input {
-          width: 100%;
-          max-width: 400px;
-          padding: 0.75rem 1rem;
-          border: 1px solid #cbd5e1;
-          border-radius: 12px;
-          font-size: 1rem;
-          outline: none;
-          transition: border-color 0.2s;
-        }
-        .input-area input:focus {
-          border-color: #2563eb;
-        }
-        .input-area button {
-          background: #2563eb;
-          color: white;
-          font-weight: 600;
-          border: none;
-          border-radius: 12px;
-          padding: 0.75rem 1.5rem;
-          cursor: pointer;
-          transition: background 0.2s;
-        }
-        .input-area button:hover {
-          background: #1d4ed8;
-        }
-        .error {
-          color: #dc2626;
-          text-align: center;
-          font-weight: 500;
-          margin-bottom: 1rem;
-        }
-        .spinner {
-          display: flex;
-          justify-content: center;
-          padding: 2rem;
-        }
-        .spinner div {
-          border: 3px solid #93c5fd;
-          border-top: 3px solid #2563eb;
-          border-radius: 50%;
-          width: 36px;
-          height: 36px;
-          animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-        .results {
-          display: flex;
-          flex-direction: column;
-          gap: 1.5rem;
-        }
-        .domain-info {
-          text-align: center;
-          color: #334155;
-        }
-        .domain-info h2 {
-          font-size: 1.25rem;
-          font-weight: 600;
-          color: #111827;
-          margin-top: 0.25rem;
-        }
-        .section {
-          background: #f1f5f9;
-          border-radius: 12px;
-          padding: 1.25rem;
-          box-shadow: inset 0 2px 5px rgba(0,0,0,0.04);
-        }
-        .section-header {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          margin-bottom: 1rem;
-        }
-        .section-header h3 {
-          font-size: 1.1rem;
-          font-weight: 600;
-          color: #1e3a8a;
-        }
-        .section-content {
-          color: #334155;
-          font-size: 0.95rem;
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 0.75rem;
-        }
-        strong {
-          color: #111827;
-        }
-        @media (max-width: 640px) {
-          .audit-container {
-            padding: 1.5rem;
-          }
-          h1 {
-            font-size: 1.6rem;
-          }
-          .input-area input {
-            max-width: 100%;
-          }
-        }
-      `}</style>
+  // 🔹 Export as PDF
+  const exportPDF = async () => {
+    if (!reportRef.current) return;
+    const canvas = await html2canvas(reportRef.current, { scale: 2 });
+    const pdf = new jsPDF("p", "pt", "a4");
+    const imgData = canvas.toDataURL("image/png");
+    const imgWidth = 595.28;
+    const pageHeight = 841.89;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    let heightLeft = imgHeight;
+    let position = 0;
+    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+    while (heightLeft >= 0) {
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+    }
+    pdf.save(`${results.domain || "audit"}-report.pdf`);
+  };
 
-      <div className="audit-container">
-        <h1>🌐 Comprehensive Domain Audit</h1>
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 880);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
-        {/* Input Section */}
-        <div className="input-area">
-          <input
-            type="text"
-            placeholder="Enter domain (e.g. example.com)"
-            value={domain}
-            onChange={(e) => setDomain(e.target.value)}
-          />
-          <button onClick={handleAudit} disabled={loading}>
-            {loading ? "Analyzing..." : "Run Audit"}
-          </button>
-        </div>
+  const Status = ({ valid, label }) => (
+    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+      {valid ? <FiCheck style={{ color: "#10B981" }} /> : <FiX style={{ color: "#EF4444" }} />}
+      <span>{label}</span>
+    </div>
+  );
 
-        {/* Error Message */}
-        {error && <div className="error">⚠️ {error}</div>}
-
-        {/* Loading Spinner */}
-        {loading && (
-          <div className="spinner">
-            <div></div>
-          </div>
-        )}
-
-        {/* Results Display */}
-        {data && !loading && (
-          <div className="results">
-            <div className="domain-info">
-              <p>Domain:</p>
-              <h2>{data.Domain}</h2>
-              <p className="time">Processed in {data["Processing Time"]}</p>
-            </div>
-
-            <Section
-              icon={<FiActivity />}
-              title="Domain Info"
-              content={data.Results["Domain Info"]}
-            />
-            <Section
-              icon={<FiServer />}
-              title="Hosting Info"
-              content={data.Results["Hosting"]}
-            />
-            <Section
-              icon={<FiMail />}
-              title="Email Setup"
-              content={data.Results["Email"]}
-            />
-            <Section
-              icon={<FiLayers />}
-              title="Technology Stack"
-              content={data.Results["Tech Stack"]}
-            />
-            <Section
-              icon={<FiTrendingUp />}
-              title="WordPress Info"
-              content={data.Results["WordPress"]}
-            />
-            <Section
-              icon={<FiShield />}
-              title="Security Audit"
-              content={data.Results["Security"]}
-            />
-            <Section
-              icon={<FiTrendingUp />}
-              title="Performance"
-              content={data.Results["Performance"]}
-            />
-          </div>
-        )}
+  const Row = ({ label, value, children }) => (
+    <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px dashed rgba(0,0,0,0.08)" }}>
+      <div style={{ color: "#374151", fontWeight: 600 }}>{label}</div>
+      <div style={{ color: "#111827", fontWeight: 500, textAlign: "right" }}>
+        {children || (value !== undefined && value !== null ? value.toString() : "—")}
       </div>
     </div>
   );
-};
 
-const Section = ({ icon, title, content }) => (
-  <div className="section">
-    <div className="section-header">
-      <span style={{ color: "#2563eb", fontSize: "1.2rem" }}>{icon}</span>
-      <h3>{title}</h3>
-    </div>
-    <div className="section-content">
-      {content &&
-        Object.entries(content).map(([key, value]) => (
-          <div key={key}>
-            <strong>{key}:</strong>{" "}
-            {Array.isArray(value) ? value.join(", ") : String(value || "-")}
+  const ListRow = ({ label, items }) => (
+    <div style={{ padding: "12px 0", borderBottom: "1px dashed rgba(0,0,0,0.08)" }}>
+      <div style={{ color: "#374151", fontWeight: 600, marginBottom: "8px" }}>{label}</div>
+      <div style={{ color: "#111827" }}>
+        {items && items.length > 0 ? (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+            {items.map((item, i) => (
+              <span key={i} style={{ background: "#F3F4F6", padding: "4px 8px", borderRadius: "6px", fontSize: "14px" }}>
+                {item}
+              </span>
+            ))}
           </div>
-        ))}
+        ) : "None detected"}
+      </div>
     </div>
-  </div>
-);
+  );
 
-export default AuditResults;
+  return (
+    <>
+      <style>{`
+        body { font-family: 'Inter', sans-serif; }
+        .page {
+          background: linear-gradient(180deg,#1b0538 0%,#0d011a 100%);
+          min-height: 100vh; padding: 120px 20px 60px;
+        }
+        .wrap { max-width: 1300px; margin: 0 auto; display: grid; grid-template-columns: 280px 1fr; gap: 32px; }
+        .sidebar {
+          background: rgba(255,255,255,0.05); border-radius: 16px; padding: 20px;
+          color: #e5e7eb; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+        }
+        .menu-btn { display: flex; align-items: center; gap: 12px; background: transparent; color: #d1d5db;
+          border: none; padding: 10px 14px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: 0.25s; }
+        .menu-btn:hover { background: rgba(255,255,255,0.08); color: white; }
+        .menu-btn.active { background: linear-gradient(90deg,#6c00ff,#2575fc); color: white; }
+        .report { background: #fff; border-radius: 16px; padding: 36px; box-shadow: 0 20px 60px rgba(0,0,0,0.1); }
+        @media (max-width: 880px) {
+          .wrap { grid-template-columns: 1fr; }
+          .report { padding: 24px; }
+        }
+      `}</style>
+
+      <div className="page">
+        <div className="max-w-2xl mx-auto mb-8 text-center">
+          <h1 className="text-3xl font-bold text-white mb-4">🌐 Comprehensive Domain Audit</h1>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <input
+              type="text"
+              value={domain}
+              onChange={(e) => setDomain(e.target.value)}
+              placeholder="Enter domain (e.g. example.com)"
+              className="px-4 py-3 rounded-lg border border-gray-300 w-full sm:w-auto"
+            />
+            <button
+              onClick={handleAudit}
+              disabled={loading}
+              className="px-6 py-3 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-50"
+            >
+              {loading ? "Analyzing..." : "Run Audit"}
+            </button>
+          </div>
+          {error && <div className="text-red-400 mt-3 font-medium">{error}</div>}
+        </div>
+
+        {results && (
+          <div className="wrap">
+            <aside className="sidebar">
+              <div style={{ fontWeight: 800, fontSize: 18, color: "white", marginBottom: 12 }}>EngagePro Audit</div>
+              <div style={{ fontSize: 13, color: "#9ca3af", marginBottom: 16 }}>{results.domain}</div>
+
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  className={`menu-btn ${activeTab === tab.id ? "active" : ""}`}
+                  onClick={() => setActiveTab(tab.id)}
+                >
+                  {tab.icon} {tab.label}
+                </button>
+              ))}
+
+              <div style={{ marginTop: 20 }}>
+                <button className="menu-btn" onClick={() => setResults(null)}>
+                  <FiHome /> New Audit
+                </button>
+                <button className="menu-btn" onClick={exportPDF}>
+                  <FiDownload /> Export PDF
+                </button>
+              </div>
+            </aside>
+
+            <main className="report" ref={reportRef}>
+              <h2 className="text-2xl font-bold mb-4 capitalize">{activeTab}</h2>
+              <div className="section">
+                {/* 🟣 Overview */}
+                {activeTab === "overview" && (
+                  <>
+                    <Row label="Domain" value={results.domain} />
+                    <Row label="Processing Time" value={results.processing_time_seconds} />
+                    <Row label="Hosting Provider" value={results.hosting?.hosting_provider} />
+                    <Row label="Email Provider" value={results.email?.provider} />
+                    <Row label="WordPress Detected" value={results.wordpress?.is_wp ? "Yes" : "No"} />
+                    <Row label="SSL Valid">
+                      <Status valid={results.security?.ssl_valid} label={results.security?.ssl_valid ? "Valid" : "Invalid"} />
+                    </Row>
+                  </>
+                )}
+
+                {/* Other Tabs */}
+                {activeTab === "domain" && results["Domain Info"] && (
+                  <>
+                    <Row label="Registrar" value={results["Domain Info"].registrar} />
+                    <Row label="Created" value={results["Domain Info"].creation_date} />
+                    <ListRow label="Name Servers" items={results["Domain Info"].name_servers} />
+                  </>
+                )}
+
+                {activeTab === "hosting" && results.Hosting && (
+                  <>
+                    <ListRow label="IP Addresses" items={results.Hosting.ips} />
+                    <Row label="Server" value={results.Hosting.server} />
+                    <Row label="Provider" value={results.Hosting.hosting_provider} />
+                  </>
+                )}
+
+                {activeTab === "email" && results.Email && (
+                  <>
+                    <Row label="Provider" value={results.Email.provider} />
+                    <ListRow label="MX Records" items={results.Email.mx} />
+                  </>
+                )}
+
+                {activeTab === "technology" && results["Tech Stack"] && (
+                  <>
+                    {Object.entries(results["Tech Stack"]).map(([cat, items]) => (
+                      <ListRow key={cat} label={cat} items={items} />
+                    ))}
+                  </>
+                )}
+
+                {activeTab === "wordpress" && results.WordPress && (
+                  <>
+                    <Row label="Version" value={results.WordPress.version} />
+                    <ListRow label="Plugins" items={results.WordPress.plugins} />
+                  </>
+                )}
+
+                {activeTab === "performance" && results.Performance && (
+                  <>
+                    <Row label="Load Time" value={results.Performance.load_time} />
+                    <Row label="Page Size" value={`${results.Performance.page_size_kb} KB`} />
+                  </>
+                )}
+
+                {activeTab === "security" && results.Security && (
+                  <>
+                    <Row label="SSL Valid">
+                      <Status valid={results.Security.ssl_valid} label={results.Security.ssl_valid ? "Valid" : "Invalid"} />
+                    </Row>
+                    <Row label="TLS Version" value={results.Security.tls_version} />
+                  </>
+                )}
+
+                {activeTab === "ads" && results.Ads && (
+                  <>
+                    <ListRow label="Analytics Tools" items={results.Ads.analytics} />
+                    <ListRow label="Ad Networks" items={results.Ads.ad_networks} />
+                  </>
+                )}
+              </div>
+            </main>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
