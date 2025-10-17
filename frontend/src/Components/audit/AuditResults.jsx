@@ -12,6 +12,13 @@ import {
   FiHome,
   FiGlobe,
   FiCalendar,
+  FiServer,
+  FiCode,
+  FiEye,
+  FiCheck,
+  FiX,
+  FiAlertTriangle,
+  FiInfo
 } from "react-icons/fi";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
@@ -23,14 +30,14 @@ export default function AuditResults({ results = {}, onNewAudit }) {
 
   const tabs = [
     { id: "overview", label: "Overview", icon: <FiActivity /> },
-    { id: "domain", label: "Domain Details", icon: <FiCalendar /> },
-    { id: "hosting", label: "Hosting", icon: <FiLayers /> },
+    { id: "domain", label: "Domain Details", icon: <FiGlobe /> },
+    { id: "hosting", label: "Hosting", icon: <FiServer /> },
     { id: "email", label: "Email Setup", icon: <FiMail /> },
-    { id: "technology", label: "Technology", icon: <FiZap /> },
+    { id: "technology", label: "Technology", icon: <FiCode /> },
     { id: "wordpress", label: "WordPress", icon: <FiTrendingUp /> },
-    { id: "performance", label: "Performance", icon: <FiTrendingUp /> },
+    { id: "performance", label: "Performance", icon: <FiZap /> },
     { id: "security", label: "Security", icon: <FiShield /> },
-    { id: "ads", label: "Ads & Trackers", icon: <FiZap /> },
+    { id: "ads", label: "Ads & Trackers", icon: <FiEye /> },
   ];
 
   const exportPDF = async () => {
@@ -62,18 +69,54 @@ export default function AuditResults({ results = {}, onNewAudit }) {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  const Row = ({ label, value }) => (
+  // Helper function to display status with icons
+  const Status = ({ valid, label }) => (
+    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+      {valid ? <FiCheck style={{ color: "#10B981" }} /> : <FiX style={{ color: "#EF4444" }} />}
+      <span>{label}</span>
+    </div>
+  );
+
+  const Row = ({ label, value, children }) => (
     <div
       style={{
         display: "flex",
         justifyContent: "space-between",
-        padding: "10px 0",
+        padding: "12px 0",
         borderBottom: "1px dashed rgba(0,0,0,0.08)",
+        alignItems: "flex-start",
       }}
     >
-      <div style={{ color: "#374151", fontWeight: 600 }}>{label}</div>
-      <div style={{ color: "#111827", fontWeight: 700 }}>
-        {value || "—"}
+      <div style={{ color: "#374151", fontWeight: 600, flex: 1 }}>{label}</div>
+      <div style={{ color: "#111827", fontWeight: 500, flex: 1, textAlign: "right" }}>
+        {children || (value !== undefined && value !== null ? value.toString() : "—")}
+      </div>
+    </div>
+  );
+
+  const ListRow = ({ label, items }) => (
+    <div style={{ padding: "12px 0", borderBottom: "1px dashed rgba(0,0,0,0.08)" }}>
+      <div style={{ color: "#374151", fontWeight: 600, marginBottom: "8px" }}>{label}</div>
+      <div style={{ color: "#111827" }}>
+        {items && items.length > 0 ? (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+            {items.map((item, index) => (
+              <span
+                key={index}
+                style={{
+                  background: "#F3F4F6",
+                  padding: "4px 8px",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                }}
+              >
+                {item}
+              </span>
+            ))}
+          </div>
+        ) : (
+          "None detected"
+        )}
       </div>
     </div>
   );
@@ -158,6 +201,15 @@ export default function AuditResults({ results = {}, onNewAudit }) {
           border: 1px solid rgba(0,0,0,0.05);
           margin-bottom: 28px;
         }
+        .score-badge {
+          background: linear-gradient(90deg,#6c00ff,#2575fc);
+          color: white;
+          padding: 8px 16px;
+          border-radius: 20px;
+          font-weight: 700;
+          font-size: 14px;
+          display: inline-block;
+        }
         @media (max-width: 880px) {
           .wrap { grid-template-columns: 1fr; }
           .sidebar { position: relative; top: 0; display: flex; flex-wrap: wrap; justify-content: center; }
@@ -200,67 +252,133 @@ export default function AuditResults({ results = {}, onNewAudit }) {
           </aside>
 
           <main className="report" ref={reportRef}>
-            <h2>{tabs.find((t) => t.id === activeTab)?.label}</h2>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
+              <h2>{tabs.find((t) => t.id === activeTab)?.label}</h2>
+              {results.audit_date && (
+                <div style={{ color: "#6B7280", fontSize: "14px" }}>
+                  Audited: {new Date(results.audit_date).toLocaleDateString()}
+                </div>
+              )}
+            </div>
+            
             <div className="section">
               {activeTab === "overview" && (
                 <>
                   <Row label="Domain" value={results.domain} />
-                  <Row label="Score" value={results.score} />
-                  <Row label="Hosting" value={results.hosting} />
-                  <Row label="Email" value={results.email} />
+                  <Row label="Overall Score">
+                    {results.performance?.score && (
+                      <span className="score-badge">{results.performance.score}</span>
+                    )}
+                  </Row>
+                  <Row label="Processing Time" value={results.processing_time_seconds ? `${results.processing_time_seconds}s` : "—"} />
+                  <Row label="Hosting Provider" value={results.hosting?.hosting_provider} />
+                  <Row label="Email Provider" value={results.email?.provider} />
+                  <Row label="WordPress Detected">
+                    {results.wordpress?.is_wp ? "Yes" : "No"}
+                  </Row>
+                  <Row label="SSL Status">
+                    {results.security?.ssl_valid ? (
+                      <Status valid={true} label="Valid" />
+                    ) : (
+                      <Status valid={false} label="Invalid/Missing" />
+                    )}
+                  </Row>
                 </>
               )}
-              {activeTab === "domain" && results.domain_info && (
+
+              {activeTab === "domain" && results.domain_details && (
                 <>
-                  <Row label="Registrar" value={results.domain_info.registrar} />
-                  <Row label="Creation" value={results.domain_info.creation_date} />
-                  <Row label="Expiry" value={results.domain_info.expiry_date} />
+                  <Row label="Registrar" value={results.domain_details.registrar} />
+                  <Row label="Creation Date" value={results.domain_details.creation_date} />
+                  <Row label="Expiry Date" value={results.domain_details.expiry_date} />
+                  <Row label="Updated Date" value={results.domain_details.updated_date} />
+                  <ListRow label="Name Servers" items={results.domain_details.name_servers} />
                 </>
               )}
-              {activeTab === "hosting" && (
+
+              {activeTab === "hosting" && results.hosting && (
                 <>
-                  <Row label="Provider" value={results.hosting_provider} />
-                  <Row label="IP" value={results.ip_address} />
+                  <ListRow label="IP Addresses" items={results.hosting.ips} />
+                  <Row label="Server" value={results.hosting.server} />
+                  <Row label="X-Powered-By" value={results.hosting.x_powered_by} />
+                  <Row label="Hosting Provider" value={results.hosting.hosting_provider} />
+                  <Row label="Reverse Hostname" value={results.hosting.reverse_hostname} />
+                  <ListRow label="Resolver Nameservers" items={results.hosting.resolver} />
                 </>
               )}
-              {activeTab === "email" && (
+
+              {activeTab === "email" && results.email && (
                 <>
-                  <Row label="Email Provider" value={results.email_provider} />
+                  <Row label="Email Provider" value={results.email.provider} />
+                  <ListRow label="MX Records" items={results.email.mx} />
+                  <ListRow label="TXT Records" items={results.email.txt} />
+                  <ListRow label="Found Email Addresses" items={results.email.found_emails} />
                 </>
               )}
-              {activeTab === "technology" && (
+
+              {activeTab === "technology" && results.technology && (
                 <>
-                  <Row
-                    label="Tech Stack"
-                    value={Array.isArray(results.technologies) ? results.technologies.join(", ") : results.technologies}
-                  />
+                  {Object.entries(results.technology).map(([category, technologies]) => (
+                    <ListRow key={category} 
+                      label={category.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')} 
+                      items={technologies} 
+                    />
+                  ))}
+                  {Object.keys(results.technology).length === 0 && (
+                    <div style={{ textAlign: "center", color: "#6B7280", padding: "20px" }}>
+                      No technologies detected
+                    </div>
+                  )}
                 </>
               )}
+
               {activeTab === "wordpress" && results.wordpress && (
                 <>
+                  <Row label="WordPress Detected">
+                    {results.wordpress.is_wp ? "Yes" : "No"}
+                  </Row>
+                  <Row label="Version" value={results.wordpress.version} />
                   <Row label="Theme" value={results.wordpress.theme} />
-                  <Row
-                    label="Plugins"
-                    value={Array.isArray(results.wordpress.plugins) ? results.wordpress.plugins.join(", ") : results.wordpress.plugins}
-                  />
+                  <ListRow label="Plugins" items={results.wordpress.plugins} />
                 </>
               )}
+
               {activeTab === "performance" && results.performance && (
                 <>
-                  <Row label="Speed Score" value={results.performance.speed_score} />
+                  <Row label="Performance Score">
+                    {results.performance.score && (
+                      <span className="score-badge">{results.performance.score}</span>
+                    )}
+                  </Row>
                   <Row label="Load Time" value={results.performance.load_time} />
+                  <Row label="Page Size" value={results.performance.page_size_kb ? `${results.performance.page_size_kb} KB` : "—"} />
                 </>
               )}
+
               {activeTab === "security" && results.security && (
                 <>
-                  <Row label="SSL" value={results.security.ssl_status} />
-                  <Row label="HSTS" value={results.security.hsts_enabled ? "Enabled" : "Disabled"} />
+                  <Row label="SSL Valid">
+                    {results.security.ssl_valid ? (
+                      <Status valid={true} label="Valid" />
+                    ) : (
+                      <Status valid={false} label="Invalid/Missing" />
+                    )}
+                  </Row>
+                  <Row label="SSL Expiry" value={results.security.ssl_expiry} />
+                  <Row label="TLS Version" value={results.security.tls_version} />
+                  <Row label="HSTS" value={results.security.headers?.hsts ? "Enabled" : "Disabled"} />
+                  <Row label="X-Frame-Options" value={results.security.headers?.x_frame_options} />
+                  <Row label="X-Content-Type-Options" value={results.security.headers?.x_content_type_options} />
+                  <Row label="Content-Security-Policy" value={results.security.headers?.csp ? "Enabled" : "Disabled"} />
+                  <Row label="Referrer-Policy" value={results.security.headers?.referrer_policy} />
                 </>
               )}
+
               {activeTab === "ads" && results.ads && (
                 <>
-                  <Row label="Ads" value={results.ads.ads_list?.join(", ")} />
-                  <Row label="Trackers" value={results.ads.trackers?.join(", ")} />
+                  <ListRow label="Ad Networks" items={results.ads.ad_networks} />
+                  <ListRow label="Analytics Tools" items={results.ads.analytics} />
+                  <ListRow label="Tracking Scripts" items={results.ads.tracking_scripts_found} />
                 </>
               )}
             </div>
