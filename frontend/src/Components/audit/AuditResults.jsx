@@ -33,19 +33,6 @@ export default function AuditResults({ results = {}, onNewAudit }) {
     { id: "ads", label: "Ads & Trackers", icon: <FiZap /> },
   ];
 
-  const dummyData = {
-    domain: "example.com",
-    score: "92",
-    registrar: "Namecheap",
-    creation: "2022-01-01",
-    expiry: "2026-01-01",
-    hosting: "Cloudflare",
-    ip: "192.168.1.1",
-    email: "Google Workspace",
-    tech: ["React", "Node.js", "Nginx"],
-    plugins: ["Yoast SEO", "Elementor"],
-  };
-
   const exportPDF = async () => {
     if (!reportRef.current) return;
     const canvas = await html2canvas(reportRef.current, { scale: 2 });
@@ -65,7 +52,7 @@ export default function AuditResults({ results = {}, onNewAudit }) {
       pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
     }
-    pdf.save(`${dummyData.domain}-audit.pdf`);
+    pdf.save(`${results.domain || "audit"}-report.pdf`);
   };
 
   useEffect(() => {
@@ -85,7 +72,9 @@ export default function AuditResults({ results = {}, onNewAudit }) {
       }}
     >
       <div style={{ color: "#374151", fontWeight: 600 }}>{label}</div>
-      <div style={{ color: "#111827", fontWeight: 700 }}>{value ?? "—"}</div>
+      <div style={{ color: "#111827", fontWeight: 700 }}>
+        {value || "—"}
+      </div>
     </div>
   );
 
@@ -96,7 +85,7 @@ export default function AuditResults({ results = {}, onNewAudit }) {
         .page {
           background: linear-gradient(180deg,#1b0538 0%,#0d011a 100%);
           min-height: 100vh;
-          padding: 120px 20px 60px;
+          padding: 140px 20px 60px;
           box-sizing: border-box;
         }
         .wrap {
@@ -151,29 +140,29 @@ export default function AuditResults({ results = {}, onNewAudit }) {
         .report {
           background: #fff;
           border-radius: 16px;
-          padding: 40px;
+          padding: 48px;
           box-shadow: 0 20px 60px rgba(0,0,0,0.1);
           color: #0b1220;
           min-height: 600px;
         }
         .report h2 {
-          font-size: 24px;
+          font-size: 26px;
           font-weight: 800;
-          margin-bottom: 12px;
+          margin-bottom: 20px;
           color: #0b1220;
         }
         .section {
           background: #fafafa;
-          padding: 24px;
+          padding: 28px;
           border-radius: 12px;
           border: 1px solid rgba(0,0,0,0.05);
-          margin-bottom: 20px;
+          margin-bottom: 28px;
         }
         @media (max-width: 880px) {
           .wrap { grid-template-columns: 1fr; }
           .sidebar { position: relative; top: 0; display: flex; flex-wrap: wrap; justify-content: center; }
           .menu { flex-direction: row; flex-wrap: wrap; justify-content: center; }
-          .report { padding: 20px; }
+          .report { padding: 24px; }
         }
       `}</style>
 
@@ -181,9 +170,11 @@ export default function AuditResults({ results = {}, onNewAudit }) {
         <div className="wrap">
           <aside className="sidebar">
             <div className="logo">EP</div>
-            <div style={{ fontWeight: 800, fontSize: 18, color: "white" }}>EngagePro Audit</div>
+            <div style={{ fontWeight: 800, fontSize: 18, color: "white" }}>
+              EngagePro Audit
+            </div>
             <div style={{ fontSize: 13, color: "#9ca3af", marginBottom: 12 }}>
-              {dummyData.domain}
+              {results?.domain || "No domain"}
             </div>
 
             <div className="menu">
@@ -198,12 +189,9 @@ export default function AuditResults({ results = {}, onNewAudit }) {
               ))}
             </div>
 
-            <div style={{ marginTop: 20, display: "flex", gap: 8 }}>
-              <button
-                className="menu-btn active"
-                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-              >
-                <FiHome /> Home
+            <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 8 }}>
+              <button className="menu-btn" onClick={onNewAudit}>
+                <FiHome /> New Audit
               </button>
               <button className="menu-btn" onClick={exportPDF}>
                 <FiDownload /> Export PDF
@@ -213,62 +201,66 @@ export default function AuditResults({ results = {}, onNewAudit }) {
 
           <main className="report" ref={reportRef}>
             <h2>{tabs.find((t) => t.id === activeTab)?.label}</h2>
-
-            {/* Dynamic section content */}
             <div className="section">
               {activeTab === "overview" && (
                 <>
-                  <Row label="Domain" value={dummyData.domain} />
-                  <Row label="Score" value={dummyData.score} />
-                  <Row label="Hosting" value={dummyData.hosting} />
-                  <Row label="Email" value={dummyData.email} />
+                  <Row label="Domain" value={results.domain} />
+                  <Row label="Score" value={results.score} />
+                  <Row label="Hosting" value={results.hosting} />
+                  <Row label="Email" value={results.email} />
                 </>
               )}
-              {activeTab === "domain" && (
+              {activeTab === "domain" && results.domain_info && (
                 <>
-                  <Row label="Registrar" value={dummyData.registrar} />
-                  <Row label="Creation" value={dummyData.creation} />
-                  <Row label="Expiry" value={dummyData.expiry} />
+                  <Row label="Registrar" value={results.domain_info.registrar} />
+                  <Row label="Creation" value={results.domain_info.creation_date} />
+                  <Row label="Expiry" value={results.domain_info.expiry_date} />
                 </>
               )}
               {activeTab === "hosting" && (
                 <>
-                  <Row label="Provider" value={dummyData.hosting} />
-                  <Row label="IP" value={dummyData.ip} />
+                  <Row label="Provider" value={results.hosting_provider} />
+                  <Row label="IP" value={results.ip_address} />
                 </>
               )}
               {activeTab === "email" && (
                 <>
-                  <Row label="Email Provider" value={dummyData.email} />
+                  <Row label="Email Provider" value={results.email_provider} />
                 </>
               )}
               {activeTab === "technology" && (
                 <>
-                  <Row label="Stack" value={dummyData.tech.join(", ")} />
+                  <Row
+                    label="Tech Stack"
+                    value={Array.isArray(results.technologies) ? results.technologies.join(", ") : results.technologies}
+                  />
                 </>
               )}
-              {activeTab === "wordpress" && (
+              {activeTab === "wordpress" && results.wordpress && (
                 <>
-                  <Row label="Theme" value="Astra" />
-                  <Row label="Plugins" value={dummyData.plugins.join(", ")} />
+                  <Row label="Theme" value={results.wordpress.theme} />
+                  <Row
+                    label="Plugins"
+                    value={Array.isArray(results.wordpress.plugins) ? results.wordpress.plugins.join(", ") : results.wordpress.plugins}
+                  />
                 </>
               )}
-              {activeTab === "performance" && (
+              {activeTab === "performance" && results.performance && (
                 <>
-                  <Row label="Speed Score" value="89" />
-                  <Row label="Load Time" value="1.9s" />
+                  <Row label="Speed Score" value={results.performance.speed_score} />
+                  <Row label="Load Time" value={results.performance.load_time} />
                 </>
               )}
-              {activeTab === "security" && (
+              {activeTab === "security" && results.security && (
                 <>
-                  <Row label="SSL" value="Valid" />
-                  <Row label="HSTS" value="Enabled" />
+                  <Row label="SSL" value={results.security.ssl_status} />
+                  <Row label="HSTS" value={results.security.hsts_enabled ? "Enabled" : "Disabled"} />
                 </>
               )}
-              {activeTab === "ads" && (
+              {activeTab === "ads" && results.ads && (
                 <>
-                  <Row label="Ads" value="Google Ads" />
-                  <Row label="Trackers" value="Facebook Pixel" />
+                  <Row label="Ads" value={results.ads.ads_list?.join(", ")} />
+                  <Row label="Trackers" value={results.ads.trackers?.join(", ")} />
                 </>
               )}
             </div>
