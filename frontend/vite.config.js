@@ -7,7 +7,7 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'https://comprihensive-audit-backend.onrender.com',
+        target: 'https://comprihensive-domain-audit-x2iq-kyvbbp9eq-vichu071s-projects.vercel.app',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
       }
