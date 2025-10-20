@@ -17,10 +17,6 @@ import urllib3
 from datetime import datetime
 import concurrent.futures
 
-# ============================================================
-# ⚙️ Setup & Config
-# ============================================================
-
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 logging.basicConfig(
@@ -30,7 +26,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("domain-audit")
 
-app = FastAPI(title="Domain Audit API", version="6.0 Final")
+app = FastAPI(title="Domain Audit API", version="7.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -42,29 +38,21 @@ app.add_middleware(
 
 resolver = dns.resolver.Resolver()
 resolver.nameservers = ["8.8.8.8", "1.1.1.1", "8.8.4.4", "1.0.0.1"]
-resolver.timeout = 8
+resolver.timeout = 10
 resolver.lifetime = 15
 
 session = requests.Session()
-retries = Retry(total=2, backoff_factor=1.0, status_forcelist=[500, 502, 503, 504])
+retries = Retry(total=3, backoff_factor=1.0, status_forcelist=[500, 502, 503, 504])
 session.mount("http://", HTTPAdapter(max_retries=retries))
 session.mount("https://", HTTPAdapter(max_retries=retries))
 
-
-# ============================================================
-# 🧩 Core Helpers - Only Verified Methods
-# ============================================================
-
 def normalize_domain(domain: str) -> str:
-    """Normalize domain by removing protocol, www, and paths."""
     domain = re.sub(r"^https?://", "", domain.strip().lower())
     domain = re.sub(r"^www\.", "", domain)
     domain = re.sub(r"/.*$", "", domain)
     return domain.split(':')[0]
 
-
 def fetch_with_fallback(domain: str, path: str = "/", timeout: int = 12) -> Tuple[str, str, Dict]:
-    """Fetch page HTML with multiple user agents and proper headers."""
     user_agents = [
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -80,28 +68,20 @@ def fetch_with_fallback(domain: str, path: str = "/", timeout: int = 12) -> Tupl
                     'Accept-Language': 'en-US,en;q=0.5',
                 }
                 resp = session.get(url, headers=headers, timeout=timeout, verify=False, allow_redirects=True)
-                if resp.status_code == 200 and len(resp.text) > 1000:
+                if resp.status_code == 200 and len(resp.text) > 500:
                     return resp.text, url, dict(resp.headers)
             except Exception:
                 continue
     return "", "", {}
 
-
-# ============================================================
-# 🧠 Accurate WHOIS Info
-# ============================================================
-
 def get_whois_info(domain: str) -> Dict[str, Any]:
-    """Get verified WHOIS information."""
     info = {}
     try:
         w = whois.whois(domain)
         
-        # Only add verified fields
         if w.registrar:
             info["Registrar"] = w.registrar
         
-        # Handle dates carefully
         def get_safe_date(date_val):
             if not date_val:
                 return None
@@ -122,7 +102,6 @@ def get_whois_info(domain: str) -> Dict[str, Any]:
         if expiry:
             info["Expiry"] = expiry
         
-        # Nameservers - only if we have them
         nameservers = getattr(w, "name_servers", []) or []
         if nameservers and nameservers[0] is not None:
             clean_ns = [ns.rstrip('.').upper() for ns in nameservers if ns and ns != "None"]
@@ -134,19 +113,12 @@ def get_whois_info(domain: str) -> Dict[str, Any]:
     
     return info
 
-
-# ============================================================
-# ☁️ Verified Hosting Detection
-# ============================================================
-
 def detect_hosting_provider(ip: str, server: str = "", nameservers: List[str] = None) -> Optional[str]:
-    """Only return hosting provider when we have strong evidence."""
     if not ip:
         return None
     
     server_lower = server.lower() if server else ""
     
-    # Strong server header matches
     if "cloudflare" in server_lower:
         return "Cloudflare"
     if "aws" in server_lower or "amazon" in server_lower or "ec2" in server_lower:
@@ -163,8 +135,11 @@ def detect_hosting_provider(ip: str, server: str = "", nameservers: List[str] = 
         return "GoDaddy"
     if "bluehost" in server_lower:
         return "Bluehost"
+    if "nginx" in server_lower:
+        return "Nginx"
+    if "apache" in server_lower:
+        return "Apache"
     
-    # Strong nameserver matches
     if nameservers:
         ns_str = " ".join(nameservers).lower()
         if "cloudflare" in ns_str:
@@ -178,19 +153,15 @@ def detect_hosting_provider(ip: str, server: str = "", nameservers: List[str] = 
         if "godaddy" in ns_str:
             return "GoDaddy"
     
-    # Only return generic if we have server info but can't identify specifically
     if server and server != "Not Detected":
         return "Generic Hosting"
     
     return None
 
-
 def get_hosting_info(domain: str, nameservers: List[str] = None) -> Dict[str, Any]:
-    """Get verified hosting information."""
     data = {}
     
     try:
-        # Get IP address
         try:
             ip = str(resolver.resolve(domain, "A")[0])
             data["IP Address"] = ip
@@ -201,17 +172,14 @@ def get_hosting_info(domain: str, nameservers: List[str] = None) -> Dict[str, An
             except:
                 ip = None
         
-        # Get server headers
         html, url, headers = fetch_with_fallback(domain)
         if headers:
             server = headers.get("Server", "")
             if server:
-                # Clean server string
                 server = re.sub(r'\([^)]*\)', '', server).strip()
                 server = server.split('/')[0] if '/' in server else server
                 data["Server"] = server
         
-        # Only detect provider if we have strong evidence
         provider = detect_hosting_provider(ip, data.get("Server"), nameservers)
         if provider:
             data["Provider"] = provider
@@ -221,22 +189,14 @@ def get_hosting_info(domain: str, nameservers: List[str] = None) -> Dict[str, An
     
     return data
 
-
-# ============================================================
-# 📧 Verified Email Detection
-# ============================================================
-
 def get_mx(domain: str) -> List[str]:
-    """Get MX records."""
     try:
         mx_records = [str(r.exchange).rstrip(".").lower() for r in resolver.resolve(domain, "MX")]
         return mx_records if mx_records else []
     except:
         return []
 
-
 def get_txt(domain: str) -> List[str]:
-    """Get TXT records."""
     try:
         recs = []
         for r in resolver.resolve(domain, "TXT"):
@@ -245,9 +205,7 @@ def get_txt(domain: str) -> List[str]:
     except:
         return []
 
-
 def parse_txt_records(txt_records: List[str]) -> Dict[str, List[str]]:
-    """Parse and categorize TXT records."""
     parsed = {}
     
     for record in txt_records:
@@ -262,9 +220,7 @@ def parse_txt_records(txt_records: List[str]) -> Dict[str, List[str]]:
     
     return parsed
 
-
 def detect_email_provider(mx: List[str]) -> Optional[str]:
-    """Only return email provider when we have clear evidence."""
     if not mx:
         return None
     
@@ -281,16 +237,9 @@ def detect_email_provider(mx: List[str]) -> Optional[str]:
     
     return "Custom Email Service"
 
-
-# ============================================================
-# ⚙️ Verified Technology Detection
-# ============================================================
-
 def detect_tech(domain: str) -> Dict[str, List[str]]:
-    """Only return technologies we can verify."""
     tech = {}
     
-    # Use builtwith for reliable detection
     try:
         builtwith_result = builtwith.parse(f"https://{domain}")
         for category, technologies in builtwith_result.items():
@@ -299,14 +248,12 @@ def detect_tech(domain: str) -> Dict[str, List[str]]:
     except Exception:
         pass
     
-    # Additional verification from HTML
     html, _, _ = fetch_with_fallback(domain)
     if not html:
         return tech
     
     html_lower = html.lower()
     
-    # Only add frameworks if we find clear evidence
     if "react" in html_lower and ("react." in html_lower or "/react/" in html_lower):
         tech.setdefault("javascript-frameworks", []).append("React")
     
@@ -316,19 +263,15 @@ def detect_tech(domain: str) -> Dict[str, List[str]]:
     if "jquery" in html_lower and ("jquery" in html_lower or "/jquery/" in html_lower):
         tech.setdefault("javascript-frameworks", []).append("jQuery")
     
+    if "bootstrap" in html_lower:
+        tech.setdefault("css-frameworks", []).append("Bootstrap")
+    
     return tech
 
-
-# ============================================================
-# 📰 Verified WordPress Detection
-# ============================================================
-
 def get_verified_wordpress_theme(domain: str, html: str) -> Optional[str]:
-    """Only return theme if we can verify it from style.css."""
     if not html:
         return None
     
-    # Look for theme directory in CSS/JS links
     theme_patterns = [
         r'/wp-content/themes/([^/]+)/',
         r'/themes/([^/]+)/',
@@ -344,7 +287,6 @@ def get_verified_wordpress_theme(domain: str, html: str) -> Optional[str]:
     if not theme_slug:
         return None
     
-    # Verify theme by checking style.css
     style_urls = [
         f"/wp-content/themes/{theme_slug}/style.css",
         f"/themes/{theme_slug}/style.css",
@@ -354,7 +296,6 @@ def get_verified_wordpress_theme(domain: str, html: str) -> Optional[str]:
         try:
             css_content, _, _ = fetch_with_fallback(domain, style_url, 8)
             if css_content:
-                # Extract theme name from CSS header
                 theme_name_match = re.search(r'Theme Name:\s*(.+)', css_content, re.IGNORECASE)
                 if theme_name_match:
                     return theme_name_match.group(1).strip()
@@ -363,15 +304,12 @@ def get_verified_wordpress_theme(domain: str, html: str) -> Optional[str]:
     
     return None
 
-
 def get_verified_wordpress_version(html: str) -> Optional[str]:
-    """Only return WordPress version if we can verify it."""
     if not html:
         return None
     
     soup = BeautifulSoup(html, 'html.parser')
     
-    # Check generator meta tag
     generator = soup.find('meta', attrs={'name': 'generator'})
     if generator and 'wordpress' in generator.get('content', '').lower():
         version_match = re.search(r'wordpress\s*([\d.]+)', generator.get('content', ''), re.IGNORECASE)
@@ -380,9 +318,7 @@ def get_verified_wordpress_version(html: str) -> Optional[str]:
     
     return None
 
-
 def detect_wordpress_plugins(html: str) -> List[str]:
-    """Only return plugins we can verify."""
     plugins_found = set()
     
     if not html:
@@ -390,7 +326,6 @@ def detect_wordpress_plugins(html: str) -> List[str]:
     
     html_lower = html.lower()
     
-    # Plugin indicators that are very specific
     plugin_indicators = {
         "Yoast SEO": ["yoast-seo", "wpseo_"],
         "Elementor": ["elementor", "elementor-"],
@@ -399,15 +334,15 @@ def detect_wordpress_plugins(html: str) -> List[str]:
         "WP Rocket": ["wp-rocket"],
         "LiteSpeed Cache": ["litespeed-cache"],
         "Jetpack": ["jetpack", "jp-"],
+        "Akismet": ["akismet"],
+        "Wordfence": ["wordfence"],
     }
     
-    # Check for plugin directories in URLs (most reliable)
     plugin_dir_matches = re.findall(r'/wp-content/plugins/([^/"]+)/', html_lower)
     for plugin_dir in plugin_dir_matches:
         plugin_name = plugin_dir.replace('-', ' ').title()
         plugins_found.add(plugin_name)
     
-    # Check HTML content for specific indicators
     for plugin_name, indicators in plugin_indicators.items():
         for indicator in indicators:
             if indicator in html_lower:
@@ -416,9 +351,7 @@ def detect_wordpress_plugins(html: str) -> List[str]:
     
     return sorted(list(plugins_found))
 
-
 def detect_wordpress(domain: str) -> Dict[str, Any]:
-    """Only return WordPress data we can verify."""
     wp_info = {}
     
     html, _, _ = fetch_with_fallback(domain)
@@ -427,41 +360,31 @@ def detect_wordpress(domain: str) -> Dict[str, Any]:
     
     html_lower = html.lower()
     
-    # Multiple WordPress indicators required
     wp_indicators = [
         "wp-content", "wp-includes", "wordpress", "/wp-json/"
     ]
     
     wp_count = sum(1 for indicator in wp_indicators if indicator in html_lower)
-    if wp_count < 2:  # Require at least 2 indicators
+    if wp_count < 2:
         return wp_info
     
     wp_info["Detected"] = "Yes"
     
-    # Get version if we can verify it
     version = get_verified_wordpress_version(html)
     if version:
         wp_info["Version"] = version
     
-    # Get theme if we can verify it
     theme = get_verified_wordpress_theme(domain, html)
     if theme:
         wp_info["Theme"] = theme
     
-    # Get plugins
     plugins = detect_wordpress_plugins(html)
     if plugins:
         wp_info["Plugins"] = plugins
     
     return wp_info
 
-
-# ============================================================
-# 🎯 Verified Ads & Tracking Detection
-# ============================================================
-
 def detect_ads_and_tracking(domain: str) -> Dict[str, List[str]]:
-    """Only return tracking we can verify with high confidence."""
     ads_data = {}
     
     html, _, _ = fetch_with_fallback(domain)
@@ -470,19 +393,20 @@ def detect_ads_and_tracking(domain: str) -> Dict[str, List[str]]:
     
     html_lower = html.lower()
     
-    # High confidence patterns only
     analytics_services = {
         "Google Analytics": ["google-analytics.com/ga.js", "www.google-analytics.com/analytics.js", "googletagmanager.com/gtag/js"],
         "Google Tag Manager": ["googletagmanager.com/gtm.js", "www.googletagmanager.com/gtm.js"],
         "Facebook Pixel": ["facebook.net/en_US/fbevents.js", "connect.facebook.net/en_US/fbevents.js"],
+        "Hotjar": ["static.hotjar.com"],
+        "Microsoft Clarity": ["clarity.ms/tag"],
     }
     
     ad_networks = {
         "Google AdSense": ["googleads.g.doubleclick.net", "pagead2.googlesyndication.com"],
         "Google Ad Manager": ["securepubads.g.doubleclick.net", "googletagservices.com/tag/js/gpt.js"],
+        "Amazon Associates": ["amazon-adsystem.com"],
     }
     
-    # Check for analytics
     analytics_found = []
     for service, patterns in analytics_services.items():
         for pattern in patterns:
@@ -493,7 +417,6 @@ def detect_ads_and_tracking(domain: str) -> Dict[str, List[str]]:
     if analytics_found:
         ads_data["Analytics"] = analytics_found
     
-    # Check for ad networks
     ads_found = []
     for network, patterns in ad_networks.items():
         for pattern in patterns:
@@ -506,16 +429,9 @@ def detect_ads_and_tracking(domain: str) -> Dict[str, List[str]]:
     
     return ads_data
 
-
-# ============================================================
-# 🔒 Verified Security Audit
-# ============================================================
-
 def audit_security(domain: str) -> Dict[str, Any]:
-    """Only return security information we can verify."""
     sec = {}
     
-    # SSL/TLS Check
     try:
         ctx = ssl.create_default_context()
         with socket.create_connection((domain, 443), timeout=10) as sock:
@@ -525,7 +441,6 @@ def audit_security(domain: str) -> Dict[str, Any]:
                     sec["SSL"] = "Valid"
                     sec["TLS"] = ssock.version()
                     
-                    # Certificate expiry
                     if "notAfter" in cert:
                         expiry_date = datetime.strptime(cert["notAfter"], '%b %d %H:%M:%S %Y %Z')
                         days_until_expiry = (expiry_date - datetime.utcnow()).days
@@ -533,7 +448,6 @@ def audit_security(domain: str) -> Dict[str, Any]:
     except Exception:
         sec["SSL"] = "Invalid"
     
-    # Security Headers
     html, _, headers = fetch_with_fallback(domain)
     if headers:
         security_headers = []
@@ -545,19 +459,15 @@ def audit_security(domain: str) -> Dict[str, Any]:
             security_headers.append("CSP")
         if "x-frame-options" in headers_lower:
             security_headers.append("X-Frame-Options")
+        if "x-content-type-options" in headers_lower:
+            security_headers.append("X-Content-Type-Options")
         
         if security_headers:
             sec["Security Headers"] = security_headers
     
     return sec
 
-
-# ============================================================
-# 🚀 Verified Performance Analysis
-# ============================================================
-
 def analyze_performance(domain: str) -> Dict[str, Any]:
-    """Measure performance with verification."""
     start = time.time()
     html, url, headers = fetch_with_fallback(domain)
     
@@ -572,7 +482,6 @@ def analyze_performance(domain: str) -> Dict[str, Any]:
         "Page Size": f"{size:.1f} KB"
     }
     
-    # Performance rating based on actual measurements
     if load_time < 1.0:
         perf["Rating"] = "Excellent"
     elif load_time < 2.0:
@@ -584,20 +493,12 @@ def analyze_performance(domain: str) -> Dict[str, Any]:
     
     return perf
 
-
-# ============================================================
-# 🧩 Verified Parallel Execution
-# ============================================================
-
 def run_parallel(domain: str):
-    """Run all audit functions in parallel with verification."""
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as ex:
-        # Get WHOIS info first for nameservers
         whois_future = ex.submit(get_whois_info, domain)
         whois_info = whois_future.result(timeout=20)
         nameservers = whois_info.get("Nameservers", [])
         
-        # Submit other tasks
         futures = {
             "whois": whois_future,
             "hosting": ex.submit(get_hosting_info, domain, nameservers),
@@ -614,37 +515,29 @@ def run_parallel(domain: str):
         for k, f in futures.items():
             try:
                 result = f.result(timeout=25)
-                # Only add to results if we have data
                 if result:
                     results[k] = result
             except Exception as e:
                 logger.debug(f"Task {k} failed: {e}")
-                # Don't add failed tasks to results
     
-    # Process and verify final results
     final_results = {}
     
-    # Domain Info
     if results.get("whois"):
         final_results["Domain Info"] = results["whois"]
     
-    # Hosting
     if results.get("hosting"):
         final_results["Hosting"] = results["hosting"]
     
-    # Email - only if we have MX records
     mx_records = results.get("mx", [])
     if mx_records:
         email_info = {
             "MX Records": mx_records
         }
         
-        # Email provider
         provider = detect_email_provider(mx_records)
         if provider:
             email_info["Provider"] = provider
         
-        # TXT records
         txt_records = results.get("txt", [])
         if txt_records:
             parsed_txt = parse_txt_records(txt_records)
@@ -653,42 +546,30 @@ def run_parallel(domain: str):
         
         final_results["Email"] = email_info
     
-    # Technology
     if results.get("tech"):
         final_results["Technology"] = results["tech"]
     
-    # WordPress
     if results.get("wp"):
         final_results["WordPress"] = results["wp"]
     
-    # Security
     if results.get("security"):
         final_results["Security"] = results["security"]
     
-    # Performance
     if results.get("perf"):
         final_results["Performance"] = results["perf"]
     
-    # Ads & Tracking
     if results.get("ads"):
         final_results["Tracking"] = results["ads"]
     
     return final_results
 
-
-# ============================================================
-# 🌐 Final Routes
-# ============================================================
-
 @app.get("/")
 def home():
     return {
-        "message": "Domain Audit API v6.0 Final", 
+        "message": "Domain Audit API v7.0", 
         "status": "running",
-        "version": "6.0",
-        "accuracy": "verified-data-only"
+        "version": "7.0"
     }
-
 
 @app.get("/audit/{domain}")
 def audit(domain: str):
@@ -699,7 +580,7 @@ def audit(domain: str):
         return JSONResponse({"error": "Invalid domain format"}, status_code=400)
     
     try:
-        logger.info(f"Starting verified audit for: {d}")
+        logger.info(f"Starting audit for: {d}")
         data = run_parallel(d)
         processing_time = time.time() - start
         
@@ -710,7 +591,7 @@ def audit(domain: str):
             "Results": data,
         }
         
-        logger.info(f"Verified audit completed for {d} in {processing_time:.2f}s")
+        logger.info(f"Audit completed for {d} in {processing_time:.2f}s")
         return JSONResponse(result)
         
     except Exception as e:
@@ -720,16 +601,14 @@ def audit(domain: str):
             "domain": domain
         }, status_code=500)
 
-
 @app.get("/health")
 def health():
     return {
         "status": "healthy", 
         "timestamp": datetime.utcnow().isoformat(),
-        "service": "Domain Audit API v6.0"
+        "service": "Domain Audit API v7.0"
     }
-
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")    
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
