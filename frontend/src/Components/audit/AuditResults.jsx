@@ -62,13 +62,13 @@ export default function AuditResults({ results = {}, onNewAudit }) {
     </div>
   );
 
-  const StatusRow = ({ label, value, status }) => {
-    const getStatusColor = (status) => {
-      if (status === "Yes" || status === "Valid" || status === "Excellent" || status === "Good") 
+  const StatusRow = ({ label, value }) => {
+    const getStatusColor = (val) => {
+      if (val === "Yes" || val === "Valid" || val === "Excellent" || val === "Good" || val === "Success") 
         return "#10B981";
-      if (status === "No" || status === "Invalid" || status === "Failed" || status === "Very Slow") 
+      if (val === "No" || val === "Invalid" || val === "Failed" || val === "Very Slow") 
         return "#EF4444";
-      if (status === "Average" || status === "Slow") 
+      if (val === "Average" || val === "Slow") 
         return "#F59E0B";
       return "#6B7280";
     };
@@ -128,20 +128,33 @@ export default function AuditResults({ results = {}, onNewAudit }) {
     <div style={{ padding: "14px 18px", borderBottom: "1px solid #f0f0f0" }}>
       <div style={{ color: "#4B5563", fontWeight: 600, marginBottom: 6 }}>{label}</div>
       {items && Object.keys(items).length ? (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {Object.entries(items).map(([key, value], i) => (
-            <span
-              key={i}
-              style={{
-                background: "#F3F4F6",
-                padding: "6px 10px",
-                borderRadius: 6,
-                fontSize: 13,
-                color: "#111827",
-              }}
-            >
-              {key}: {Array.isArray(value) ? value.join(", ") : value}
-            </span>
+            <div key={i}>
+              <div style={{ fontWeight: 600, marginBottom: 4, color: "#374151" }}>
+                {key}:
+              </div>
+              {Array.isArray(value) ? (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {value.map((item, j) => (
+                    <span
+                      key={j}
+                      style={{
+                        background: "#F3F4F6",
+                        padding: "6px 10px",
+                        borderRadius: 6,
+                        fontSize: 13,
+                        color: "#111827",
+                      }}
+                    >
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <span style={{ color: "#111827" }}>{value}</span>
+              )}
+            </div>
           ))}
         </div>
       ) : (
@@ -212,6 +225,66 @@ export default function AuditResults({ results = {}, onNewAudit }) {
         </div>
       </div>
     );
+  };
+
+  // Helper function to render object data dynamically
+  const renderObjectData = (data, sectionTitle) => {
+    if (!data || Object.keys(data).length === 0) {
+      return (
+        <div style={{ 
+          padding: "20px", 
+          textAlign: "center", 
+          color: "#6B7280",
+          background: "#F9FAFB",
+          borderRadius: "8px"
+        }}>
+          No data available for {sectionTitle}
+        </div>
+      );
+    }
+
+    return Object.entries(data).map(([key, value]) => {
+      // Format the key for display
+      const formattedKey = key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').replace(/^./, str => str.toUpperCase());
+      
+      if (Array.isArray(value)) {
+        return <ListRow key={key} label={formattedKey} items={value} />;
+      } else if (typeof value === 'object' && value !== null) {
+        return <ObjectListRow key={key} label={formattedKey} items={value} />;
+      } else {
+        // Check if this should be a status row
+        const statusKeys = ['Detected', 'SSL', 'Status', 'Rating', 'Score'];
+        const isStatus = statusKeys.some(statusKey => key.includes(statusKey));
+        
+        if (isStatus) {
+          return <StatusRow key={key} label={formattedKey} value={value} />;
+        } else {
+          return <Row key={key} label={formattedKey} value={value} />;
+        }
+      }
+    });
+  };
+
+  // Helper function to render technology data
+  const renderTechnologyData = (techData) => {
+    if (!techData || Object.keys(techData).length === 0) {
+      return (
+        <div style={{ 
+          padding: "20px", 
+          textAlign: "center", 
+          color: "#6B7280",
+          background: "#F9FAFB",
+          borderRadius: "8px"
+        }}>
+          No technology detected
+        </div>
+      );
+    }
+
+    return Object.entries(techData).map(([category, items]) => {
+      const formattedCategory = category.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      return <TechCategoryRow key={category} label={formattedCategory} items={items} />;
+    });
   };
 
   return (
@@ -376,38 +449,27 @@ export default function AuditResults({ results = {}, onNewAudit }) {
             {activeTab === "overview" && (
               <>
                 <div className="section-title">Domain Overview</div>
-                <Row label="Domain" value={domain} />
+                <Row label="Domain" value={results.Domain} />
                 <Row label="Audit Time" value={results["Audit Time"]} />
                 <Row label="Processing Time" value={results["Processing Time"]} />
                 
                 <div className="section-title">Quick Summary</div>
-                <StatusRow label="Registrar" value={domainInfo.Registrar} />
-                <StatusRow label="Hosting Provider" value={hosting.Provider} />
-                <StatusRow label="Email Provider" value={email.Provider} />
-                <StatusRow label="WordPress Detected" value={wordpress.Detected} />
-                <StatusRow label="SSL Status" value={security.SSL} />
-                <StatusRow label="Performance Rating" value={performance.Rating} />
+                {renderObjectData({
+                  Registrar: domainInfo.Registrar,
+                  "Hosting Provider": hosting.Provider,
+                  "Email Provider": email.Provider,
+                  "WordPress Detected": wordpress.Detected,
+                  "SSL Status": security.SSL,
+                  "Performance Rating": performance.Rating
+                })}
               </>
             )}
 
             {/* DOMAIN INFO TAB */}
             {activeTab === "domain" && (
               <>
-                <div className="section-title">Domain Registration Details</div>
-                <Row label="Registrar" value={domainInfo.Registrar} />
-                <Row label="Created Date" value={domainInfo.Created} />
-                <Row label="Expiry Date" value={domainInfo.Expiry} />
-                <Row label="Domain Status" value={domainInfo.Status || "Active"} />
-                
-                <div className="section-title">DNS Configuration</div>
-                <ListRow label="Nameservers" items={domainInfo.Nameservers} />
-                
-                {domainInfo["DNS Records"] && (
-                  <>
-                    <div className="section-title">DNS Records</div>
-                    <ObjectListRow label="All DNS Records" items={domainInfo["DNS Records"]} />
-                  </>
-                )}
+                <div className="section-title">Domain Information</div>
+                {renderObjectData(domainInfo)}
               </>
             )}
 
@@ -415,18 +477,7 @@ export default function AuditResults({ results = {}, onNewAudit }) {
             {activeTab === "hosting" && (
               <>
                 <div className="section-title">Hosting Information</div>
-                <Row label="IP Address" value={hosting["IP Address"]} />
-                <Row label="Server" value={hosting.Server} />
-                <Row label="Provider" value={hosting.Provider} />
-                <Row label="CDN" value={hosting.CDN || "Not Detected"} />
-                
-                {hosting["IP Addresses"] && (
-                  <ListRow label="All IP Addresses" items={hosting["IP Addresses"]} />
-                )}
-                
-                {hosting.Infrastructure && (
-                  <ListRow label="Infrastructure Stack" items={hosting.Infrastructure} />
-                )}
+                {renderObjectData(hosting)}
               </>
             )}
 
@@ -434,17 +485,7 @@ export default function AuditResults({ results = {}, onNewAudit }) {
             {activeTab === "email" && (
               <>
                 <div className="section-title">Email Configuration</div>
-                <Row label="Email Provider" value={email.Provider} />
-                
-                <div className="section-title">Mail Exchange Records</div>
-                <ListRow label="MX Records" items={email["MX Records"]} />
-                
-                {email["DNS Records"] && (
-                  <>
-                    <div className="section-title">DNS Security Records</div>
-                    <ObjectListRow label="Email Security Records" items={email["DNS Records"]} />
-                  </>
-                )}
+                {renderObjectData(email)}
               </>
             )}
 
@@ -452,49 +493,7 @@ export default function AuditResults({ results = {}, onNewAudit }) {
             {activeTab === "technology" && (
               <>
                 <div className="section-title">Technology Stack</div>
-                
-                {Object.keys(technology).length === 0 ? (
-                  <div style={{ padding: "20px", textAlign: "center", color: "#6B7280" }}>
-                    No technology detected
-                  </div>
-                ) : (
-                  <>
-                    {technology["javascript-frameworks"] && (
-                      <TechCategoryRow label="JavaScript Frameworks" items={technology["javascript-frameworks"]} />
-                    )}
-                    
-                    {technology["web-servers"] && (
-                      <TechCategoryRow label="Web Servers" items={technology["web-servers"]} />
-                    )}
-                    
-                    {technology["cms"] && (
-                      <TechCategoryRow label="Content Management Systems" items={technology["cms"]} />
-                    )}
-                    
-                    {technology["programming-languages"] && (
-                      <TechCategoryRow label="Programming Languages" items={technology["programming-languages"]} />
-                    )}
-                    
-                    {technology["tag-managers"] && (
-                      <TechCategoryRow label="Tag Managers" items={technology["tag-managers"]} />
-                    )}
-                    
-                    {technology["css-frameworks"] && (
-                      <TechCategoryRow label="CSS Frameworks" items={technology["css-frameworks"]} />
-                    )}
-                    
-                    {technology["analytics"] && (
-                      <TechCategoryRow label="Analytics" items={technology["analytics"]} />
-                    )}
-                    
-                    {/* Other technology categories */}
-                    {Object.keys(technology).filter(key => 
-                      !["javascript-frameworks", "web-servers", "cms", "programming-languages", "tag-managers", "css-frameworks", "analytics"].includes(key)
-                    ).map(key => (
-                      <TechCategoryRow key={key} label={key.replace(/-/g, ' ').toUpperCase()} items={technology[key]} />
-                    ))}
-                  </>
-                )}
+                {renderTechnologyData(technology)}
               </>
             )}
 
@@ -502,35 +501,7 @@ export default function AuditResults({ results = {}, onNewAudit }) {
             {activeTab === "wordpress" && (
               <>
                 <div className="section-title">WordPress Analysis</div>
-                <StatusRow label="WordPress Detected" value={wordpress.Detected} />
-                <Row label="Confidence Level" value={wordpress.Confidence} />
-                
-                {wordpress.Detected === "Yes" && (
-                  <>
-                    <Row label="WordPress Version" value={wordpress.Version} />
-                    <Row label="Active Theme" value={wordpress.Theme} />
-                    
-                    {wordpress.Plugins && wordpress.Plugins.length > 0 && (
-                      <>
-                        <div className="section-title">Installed Plugins</div>
-                        <ListRow label={`Detected Plugins (${wordpress.Plugins.length})`} items={wordpress.Plugins} />
-                      </>
-                    )}
-                  </>
-                )}
-                
-                {wordpress.Detected === "No" && (
-                  <div style={{ 
-                    padding: "20px", 
-                    textAlign: "center", 
-                    color: "#6B7280",
-                    background: "#F9FAFB",
-                    borderRadius: "8px",
-                    marginTop: "16px"
-                  }}>
-                    WordPress not detected on this domain
-                  </div>
-                )}
+                {renderObjectData(wordpress)}
               </>
             )}
 
@@ -538,7 +509,6 @@ export default function AuditResults({ results = {}, onNewAudit }) {
             {activeTab === "performance" && (
               <>
                 <div className="section-title">Performance Metrics</div>
-                
                 {performance.Status === "Failed to load" ? (
                   <div style={{ 
                     padding: "20px", 
@@ -552,30 +522,32 @@ export default function AuditResults({ results = {}, onNewAudit }) {
                 ) : (
                   <>
                     <div className="metrics-grid">
-                      <div className="metric-card">
-                        <div className="metric-value">{performance["Load Time"] || "N/A"}</div>
-                        <div className="metric-label">LOAD TIME</div>
-                      </div>
-                      <div className="metric-card">
-                        <div className="metric-value">{performance["Page Size"] || "N/A"}</div>
-                        <div className="metric-label">PAGE SIZE</div>
-                      </div>
-                      <div className="metric-card">
-                        <div className="metric-value">{performance.Score || "N/A"}</div>
-                        <div className="metric-label">PERFORMANCE SCORE</div>
-                      </div>
-                      <div className="metric-card">
-                        <div className="metric-value">{performance.Rating || "N/A"}</div>
-                        <div className="metric-label">RATING</div>
-                      </div>
+                      {performance["Load Time"] && (
+                        <div className="metric-card">
+                          <div className="metric-value">{performance["Load Time"]}</div>
+                          <div className="metric-label">LOAD TIME</div>
+                        </div>
+                      )}
+                      {performance["Page Size"] && (
+                        <div className="metric-card">
+                          <div className="metric-value">{performance["Page Size"]}</div>
+                          <div className="metric-label">PAGE SIZE</div>
+                        </div>
+                      )}
+                      {performance.Score && (
+                        <div className="metric-card">
+                          <div className="metric-value">{performance.Score}</div>
+                          <div className="metric-label">PERFORMANCE SCORE</div>
+                        </div>
+                      )}
+                      {performance.Rating && (
+                        <div className="metric-card">
+                          <div className="metric-value">{performance.Rating}</div>
+                          <div className="metric-label">RATING</div>
+                        </div>
+                      )}
                     </div>
-
-                    <ScoreBadge score={performance.Score} label="Overall Performance Score" />
-                    
-                    <div className="section-title">Content Analysis</div>
-                    <Row label="Images Count" value={performance["Images Count"]} />
-                    <Row label="Scripts Count" value={performance["Scripts Count"]} />
-                    <Row label="Stylesheets Count" value={performance["Stylesheets Count"]} />
+                    {renderObjectData(performance)}
                   </>
                 )}
               </>
@@ -584,61 +556,16 @@ export default function AuditResults({ results = {}, onNewAudit }) {
             {/* SECURITY TAB */}
             {activeTab === "security" && (
               <>
-                <div className="section-title">SSL/TLS Security</div>
-                <StatusRow label="SSL Certificate" value={security.SSL} />
-                <Row label="TLS Version" value={security.TLS} />
-                <Row label="Certificate Expiry" value={security.Expires} />
-                
-                {security["Certificate_Info"] && (
-                  <>
-                    <div className="section-title">Certificate Details</div>
-                    <ObjectListRow label="Certificate Information" items={security["Certificate_Info"]} />
-                  </>
-                )}
-                
-                {security["Security_Headers"] && (
-                  <>
-                    <div className="section-title">Security Headers</div>
-                    <ObjectListRow label="HTTP Security Headers" items={security["Security_Headers"]} />
-                  </>
-                )}
-                
-                {security["Security Headers"] && Array.isArray(security["Security Headers"]) && (
-                  <ListRow label="Active Security Headers" items={security["Security Headers"]} />
-                )}
+                <div className="section-title">Security Analysis</div>
+                {renderObjectData(security)}
               </>
             )}
 
             {/* TRACKING TAB */}
             {activeTab === "tracking" && (
               <>
-                <div className="section-title">Analytics & Tracking</div>
-                
-                {tracking.Analytics && tracking.Analytics.length > 0 && (
-                  <ListRow label="Analytics Services" items={tracking.Analytics} />
-                )}
-                
-                {tracking["Ad Networks"] && tracking["Ad Networks"].length > 0 && (
-                  <ListRow label="Advertising Networks" items={tracking["Ad Networks"]} />
-                )}
-                
-                {tracking["Social_Media"] && tracking["Social_Media"].length > 0 && (
-                  <ListRow label="Social Media Integrations" items={tracking["Social_Media"]} />
-                )}
-                
-                {(!tracking.Analytics || tracking.Analytics.length === 0) && 
-                 (!tracking["Ad Networks"] || tracking["Ad Networks"].length === 0) && 
-                 (!tracking["Social_Media"] || tracking["Social_Media"].length === 0) && (
-                  <div style={{ 
-                    padding: "20px", 
-                    textAlign: "center", 
-                    color: "#6B7280",
-                    background: "#F9FAFB",
-                    borderRadius: "8px"
-                  }}>
-                    No tracking or analytics services detected
-                  </div>
-                )}
+                <div className="section-title">Tracking & Analytics</div>
+                {renderObjectData(tracking)}
               </>
             )}
           </div>
