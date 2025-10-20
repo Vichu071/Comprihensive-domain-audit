@@ -10,17 +10,19 @@ export default function AuditResults({ results = {}, onNewAudit }) {
   const [activeTab, setActiveTab] = useState("overview");
   const reportRef = useRef(null);
 
+  // Map the JSON structure to match your component
   const payload = results?.Results || results || {};
   const domain = results?.Domain || payload?.Domain || "";
 
+  // Map all sections from the JSON response
   const domainInfo = payload["Domain Info"] || {};
   const hosting = payload.Hosting || {};
   const email = payload.Email || {};
-  const tech = payload["Tech Stack"] || {};
+  const technology = payload.Technology || {};
   const wordpress = payload.WordPress || {};
   const security = payload.Security || {};
   const performance = payload.Performance || {};
-  const ads = payload.Ads || {};
+  const tracking = payload.Tracking || {};
 
   const exportPDF = async () => {
     if (!reportRef.current) return;
@@ -41,6 +43,7 @@ export default function AuditResults({ results = {}, onNewAudit }) {
     }
   };
 
+  // Helper Components
   const Row = ({ label, value }) => (
     <div
       style={{
@@ -81,6 +84,59 @@ export default function AuditResults({ results = {}, onNewAudit }) {
         </div>
       ) : (
         <span style={{ color: "#9CA3AF" }}>None</span>
+      )}
+    </div>
+  );
+
+  const ObjectListRow = ({ label, items }) => (
+    <div style={{ padding: "14px 18px", borderBottom: "1px solid #f0f0f0" }}>
+      <div style={{ color: "#4B5563", fontWeight: 600, marginBottom: 6 }}>{label}</div>
+      {items && Object.keys(items).length ? (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {Object.entries(items).map(([key, value], i) => (
+            <span
+              key={i}
+              style={{
+                background: "#F3F4F6",
+                padding: "6px 10px",
+                borderRadius: 6,
+                fontSize: 13,
+                color: "#111827",
+              }}
+            >
+              {key}: {Array.isArray(value) ? value.join(", ") : value}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <span style={{ color: "#9CA3AF" }}>None</span>
+      )}
+    </div>
+  );
+
+  const TechCategoryRow = ({ label, items }) => (
+    <div style={{ padding: "14px 18px", borderBottom: "1px solid #f0f0f0" }}>
+      <div style={{ color: "#4B5563", fontWeight: 600, marginBottom: 6 }}>{label}</div>
+      {Array.isArray(items) && items.length ? (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {items.map((item, i) => (
+            <span
+              key={i}
+              style={{
+                background: "#E0E7FF",
+                padding: "6px 10px",
+                borderRadius: 6,
+                fontSize: 13,
+                color: "#3730A3",
+                fontWeight: 500,
+              }}
+            >
+              {item}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <span style={{ color: "#9CA3AF" }}>None detected</span>
       )}
     </div>
   );
@@ -151,6 +207,14 @@ export default function AuditResults({ results = {}, onNewAudit }) {
         .btn-action:hover {
           opacity: 0.9;
         }
+        .section-title {
+          font-size: 18px;
+          font-weight: 700;
+          color: #111827;
+          margin: 20px 0 10px 0;
+          padding-bottom: 8px;
+          border-bottom: 2px solid #E5E7EB;
+        }
         @media (max-width: 900px) {
           .audit-page { flex-direction: column; padding: 30px 20px; align-items: center; }
           .sidebar { width: 100%; flex-direction: row; flex-wrap: wrap; justify-content: center; }
@@ -168,20 +232,20 @@ export default function AuditResults({ results = {}, onNewAudit }) {
               fontSize: 22, fontWeight: 800, marginBottom: 16
             }}>EP</div>
 
-            <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>EngagePro Audit</div>
+            <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Domain Audit</div>
             <div style={{ fontSize: 13, color: "#bbb", marginBottom: 24 }}>{domain || "No domain"}</div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {[
                 ["overview", FiActivity, "Overview"],
-                ["domain", FiGlobe, "Domain Details"],
+                ["domain", FiGlobe, "Domain Info"],
                 ["hosting", FiServer, "Hosting"],
-                ["email", FiMail, "Email Setup"],
+                ["email", FiMail, "Email"],
                 ["technology", FiCode, "Technology"],
                 ["wordpress", FiTrendingUp, "WordPress"],
                 ["performance", FiZap, "Performance"],
                 ["security", FiShield, "Security"],
-                ["ads", FiEye, "Ads & Trackers"],
+                ["tracking", FiEye, "Tracking"],
               ].map(([key, Icon, label]) => (
                 <button
                   key={key}
@@ -201,7 +265,7 @@ export default function AuditResults({ results = {}, onNewAudit }) {
             alignItems: "center", marginBottom: 30, flexWrap: "wrap", gap: 10
           }}>
             <h2 style={{ fontSize: 24, fontWeight: 700, color: "#111827" }}>
-              {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+              {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Audit Results
             </h2>
 
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -211,74 +275,209 @@ export default function AuditResults({ results = {}, onNewAudit }) {
           </div>
 
           <div className="section">
+            {/* OVERVIEW TAB */}
             {activeTab === "overview" && (
               <>
+                <div className="section-title">Domain Overview</div>
                 <Row label="Domain" value={domain} />
+                <Row label="Audit Time" value={results["Audit Time"]} />
+                <Row label="Processing Time" value={results["Processing Time"]} />
+                
+                <div className="section-title">Quick Summary</div>
+                <Row label="Registrar" value={domainInfo.Registrar} />
                 <Row label="Hosting Provider" value={hosting.Provider} />
                 <Row label="Email Provider" value={email.Provider} />
-                <Row label="WordPress Detected" value={wordpress["Is WordPress"]} />
+                <Row label="WordPress Detected" value={wordpress.Detected} />
                 <Row label="SSL Status" value={security.SSL} />
+                <Row label="Performance Rating" value={performance.Rating} />
               </>
             )}
+
+            {/* DOMAIN INFO TAB */}
             {activeTab === "domain" && (
               <>
+                <div className="section-title">Domain Registration Details</div>
                 <Row label="Registrar" value={domainInfo.Registrar} />
-                <Row label="Created" value={domainInfo.Created} />
-                <Row label="Expiry" value={domainInfo.Expiry} />
+                <Row label="Created Date" value={domainInfo.Created} />
+                <Row label="Expiry Date" value={domainInfo.Expiry} />
+                <Row label="Domain Status" value={domainInfo.Status || "Active"} />
+                
+                <div className="section-title">DNS Configuration</div>
                 <ListRow label="Nameservers" items={domainInfo.Nameservers} />
+                
+                {domainInfo["DNS Records"] && (
+                  <>
+                    <div className="section-title">DNS Records</div>
+                    <ObjectListRow label="All DNS Records" items={domainInfo["DNS Records"]} />
+                  </>
+                )}
               </>
             )}
+
+            {/* HOSTING TAB */}
             {activeTab === "hosting" && (
               <>
-                <Row label="IP" value={hosting.IP} />
+                <div className="section-title">Hosting Information</div>
+                <Row label="IP Address" value={hosting["IP Address"]} />
                 <Row label="Server" value={hosting.Server} />
                 <Row label="Provider" value={hosting.Provider} />
+                <Row label="CDN" value={hosting.CDN || "Not Detected"} />
+                
+                {hosting["IP Addresses"] && (
+                  <ListRow label="All IP Addresses" items={hosting["IP Addresses"]} />
+                )}
+                
+                {hosting.Infrastructure && (
+                  <ListRow label="Infrastructure Stack" items={hosting.Infrastructure} />
+                )}
               </>
             )}
+
+            {/* EMAIL TAB */}
             {activeTab === "email" && (
               <>
-                <Row label="Provider" value={email.Provider} />
-                <ListRow label="MX" items={email.MX} />
-                <ListRow label="TXT" items={email.TXT} />
+                <div className="section-title">Email Configuration</div>
+                <Row label="Email Provider" value={email.Provider} />
+                
+                <div className="section-title">Mail Exchange Records</div>
+                <ListRow label="MX Records" items={email["MX Records"]} />
+                
+                {email["DNS Records"] && (
+                  <>
+                    <div className="section-title">DNS Security Records</div>
+                    <ObjectListRow label="Email Security Records" items={email["DNS Records"]} />
+                  </>
+                )}
               </>
             )}
+
+            {/* TECHNOLOGY TAB */}
             {activeTab === "technology" && (
               <>
-                {Object.entries(tech).map(([key, val]) => (
-                  <ListRow key={key} label={key} items={val} />
+                <div className="section-title">Technology Stack</div>
+                
+                {technology["javascript-frameworks"] && (
+                  <TechCategoryRow label="JavaScript Frameworks" items={technology["javascript-frameworks"]} />
+                )}
+                
+                {technology["web-servers"] && (
+                  <TechCategoryRow label="Web Servers" items={technology["web-servers"]} />
+                )}
+                
+                {technology["cms"] && (
+                  <TechCategoryRow label="Content Management Systems" items={technology["cms"]} />
+                )}
+                
+                {technology["programming-languages"] && (
+                  <TechCategoryRow label="Programming Languages" items={technology["programming-languages"]} />
+                )}
+                
+                {technology["tag-managers"] && (
+                  <TechCategoryRow label="Tag Managers" items={technology["tag-managers"]} />
+                )}
+                
+                {technology["css-frameworks"] && (
+                  <TechCategoryRow label="CSS Frameworks" items={technology["css-frameworks"]} />
+                )}
+                
+                {Object.keys(technology).filter(key => 
+                  !["javascript-frameworks", "web-servers", "cms", "programming-languages", "tag-managers", "css-frameworks"].includes(key)
+                ).map(key => (
+                  <TechCategoryRow key={key} label={key.replace(/-/g, ' ').toUpperCase()} items={technology[key]} />
                 ))}
               </>
             )}
+
+            {/* WORDPRESS TAB */}
             {activeTab === "wordpress" && (
               <>
-                <Row label="Is WordPress" value={wordpress["Is WordPress"]} />
-                <Row label="Version" value={wordpress.Version} />
-                <Row label="Theme" value={wordpress.Theme} />
-                <ListRow label="Plugins" items={wordpress.Plugins} />
+                <div className="section-title">WordPress Detection</div>
+                <Row label="WordPress Detected" value={wordpress.Detected} />
+                <Row label="Confidence Level" value={wordpress.Confidence} />
+                <Row label="WordPress Version" value={wordpress.Version} />
+                <Row label="Active Theme" value={wordpress.Theme} />
+                
+                {wordpress.Plugins && (
+                  <>
+                    <div className="section-title">Installed Plugins</div>
+                    <ListRow label={`Plugins (${wordpress.Plugins.length})`} items={wordpress.Plugins} />
+                  </>
+                )}
+                
+                {wordpress["Security_Issues"] && (
+                  <>
+                    <div className="section-title">Security Issues</div>
+                    <ListRow label="Identified Issues" items={wordpress["Security_Issues"]} />
+                  </>
+                )}
               </>
             )}
+
+            {/* PERFORMANCE TAB */}
             {activeTab === "performance" && (
               <>
+                <div className="section-title">Performance Metrics</div>
                 <Row label="Load Time" value={performance["Load Time"]} />
-                <Row label="Size" value={performance.Size} />
-                <Row label="Score" value={performance.Score} />
-                <Row label="URL" value={performance.URL} />
+                <Row label="Page Size" value={performance["Page Size"]} />
+                <Row label="Performance Rating" value={performance.Rating} />
+                <Row label="Performance Score" value={performance.Score} />
+                <Row label="Status Code" value={performance["Status_Code"]} />
+                
+                <div className="section-title">Content Analysis</div>
+                <Row label="Images Count" value={performance["Images_Count"]} />
+                <Row label="Scripts Count" value={performance["Scripts_Count"]} />
+                <Row label="Stylesheets Count" value={performance["Stylesheets_Count"]} />
               </>
             )}
+
+            {/* SECURITY TAB */}
             {activeTab === "security" && (
               <>
-                <Row label="SSL" value={security.SSL} />
-                <Row label="TLS" value={security.TLS} />
-                <Row label="Expiry" value={security.Expiry} />
-                <Row label="HSTS" value={security.HSTS} />
-                <Row label="CSP" value={security.CSP} />
+                <div className="section-title">SSL/TLS Security</div>
+                <Row label="SSL Certificate" value={security.SSL} />
+                <Row label="TLS Version" value={security.TLS} />
+                <Row label="Certificate Expiry" value={security.Expires} />
+                
+                {security["Certificate_Info"] && (
+                  <>
+                    <div className="section-title">Certificate Details</div>
+                    <ObjectListRow label="Certificate Information" items={security["Certificate_Info"]} />
+                  </>
+                )}
+                
+                {security["Security_Headers"] && (
+                  <>
+                    <div className="section-title">Security Headers</div>
+                    <ObjectListRow label="HTTP Security Headers" items={security["Security_Headers"]} />
+                  </>
+                )}
+                
+                {security["Security Headers"] && Array.isArray(security["Security Headers"]) && (
+                  <ListRow label="Active Security Headers" items={security["Security Headers"]} />
+                )}
               </>
             )}
-            {activeTab === "ads" && (
+
+            {/* TRACKING TAB */}
+            {activeTab === "tracking" && (
               <>
-                <ListRow label="Ad Networks" items={ads.ad_networks || []} />
-                <ListRow label="Analytics" items={ads.analytics || []} />
-                <ListRow label="Tracking Scripts" items={ads.tracking_scripts_found || []} />
+                <div className="section-title">Analytics & Tracking</div>
+                
+                {tracking.Analytics && (
+                  <ListRow label="Analytics Services" items={tracking.Analytics} />
+                )}
+                
+                {tracking["Ad Networks"] && (
+                  <ListRow label="Advertising Networks" items={tracking["Ad Networks"]} />
+                )}
+                
+                {tracking["Social_Media"] && (
+                  <ListRow label="Social Media Integrations" items={tracking["Social_Media"]} />
+                )}
+                
+                {tracking.Trackers && (
+                  <ListRow label="Tracking Scripts" items={tracking.Trackers} />
+                )}
               </>
             )}
           </div>
@@ -286,4 +485,4 @@ export default function AuditResults({ results = {}, onNewAudit }) {
       </div>
     </>
   );
-} 
+}
