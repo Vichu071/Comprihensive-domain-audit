@@ -62,6 +62,42 @@ export default function AuditResults({ results = {}, onNewAudit }) {
     </div>
   );
 
+  const StatusRow = ({ label, value, status }) => {
+    const getStatusColor = (status) => {
+      if (status === "Yes" || status === "Valid" || status === "Excellent" || status === "Good") 
+        return "#10B981";
+      if (status === "No" || status === "Invalid" || status === "Failed" || status === "Very Slow") 
+        return "#EF4444";
+      if (status === "Average" || status === "Slow") 
+        return "#F59E0B";
+      return "#6B7280";
+    };
+
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          padding: "14px 18px",
+          borderBottom: "1px solid #f0f0f0",
+          alignItems: "center",
+          background: "#fcfcfc",
+          borderRadius: 8,
+          marginBottom: 8,
+        }}
+      >
+        <div style={{ color: "#4B5563", fontWeight: 600 }}>{label}</div>
+        <div style={{ 
+          color: getStatusColor(value),
+          fontWeight: 600,
+          fontSize: "14px"
+        }}>
+          {value || "—"}
+        </div>
+      </div>
+    );
+  };
+
   const ListRow = ({ label, items }) => (
     <div style={{ padding: "14px 18px", borderBottom: "1px solid #f0f0f0" }}>
       <div style={{ color: "#4B5563", fontWeight: 600, marginBottom: 6 }}>{label}</div>
@@ -83,7 +119,7 @@ export default function AuditResults({ results = {}, onNewAudit }) {
           ))}
         </div>
       ) : (
-        <span style={{ color: "#9CA3AF" }}>None</span>
+        <span style={{ color: "#9CA3AF" }}>None detected</span>
       )}
     </div>
   );
@@ -140,6 +176,43 @@ export default function AuditResults({ results = {}, onNewAudit }) {
       )}
     </div>
   );
+
+  const ScoreBadge = ({ score, label }) => {
+    const getScoreColor = (score) => {
+      if (score === "A") return "#10B981";
+      if (score === "B") return "#34D399";
+      if (score === "C") return "#F59E0B";
+      if (score === "D") return "#F97316";
+      if (score === "F") return "#EF4444";
+      return "#6B7280";
+    };
+
+    return (
+      <div style={{ 
+        display: "flex", 
+        alignItems: "center", 
+        gap: 8,
+        padding: "8px 12px",
+        background: "#F8FAFC",
+        borderRadius: 8,
+        marginBottom: 8
+      }}>
+        <div style={{ color: "#4B5563", fontWeight: 600, fontSize: "14px" }}>{label}</div>
+        <div style={{
+          background: getScoreColor(score),
+          color: "white",
+          padding: "4px 8px",
+          borderRadius: 6,
+          fontSize: "12px",
+          fontWeight: "bold",
+          minWidth: "20px",
+          textAlign: "center"
+        }}>
+          {score || "N/A"}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <>
@@ -215,10 +288,34 @@ export default function AuditResults({ results = {}, onNewAudit }) {
           padding-bottom: 8px;
           border-bottom: 2px solid #E5E7EB;
         }
+        .metrics-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 12px;
+          margin-bottom: 16px;
+        }
+        .metric-card {
+          background: #F8FAFC;
+          padding: 16px;
+          border-radius: 8px;
+          border-left: 4px solid #6c00ff;
+        }
+        .metric-value {
+          font-size: 20px;
+          font-weight: 700;
+          color: #111827;
+          margin-bottom: 4px;
+        }
+        .metric-label {
+          font-size: 12px;
+          color: #6B7280;
+          font-weight: 600;
+        }
         @media (max-width: 900px) {
           .audit-page { flex-direction: column; padding: 30px 20px; align-items: center; }
           .sidebar { width: 100%; flex-direction: row; flex-wrap: wrap; justify-content: center; }
           .report { padding: 30px 20px; width: 100%; }
+          .metrics-grid { grid-template-columns: 1fr; }
         }
       `}</style>
 
@@ -284,12 +381,12 @@ export default function AuditResults({ results = {}, onNewAudit }) {
                 <Row label="Processing Time" value={results["Processing Time"]} />
                 
                 <div className="section-title">Quick Summary</div>
-                <Row label="Registrar" value={domainInfo.Registrar} />
-                <Row label="Hosting Provider" value={hosting.Provider} />
-                <Row label="Email Provider" value={email.Provider} />
-                <Row label="WordPress Detected" value={wordpress.Detected} />
-                <Row label="SSL Status" value={security.SSL} />
-                <Row label="Performance Rating" value={performance.Rating} />
+                <StatusRow label="Registrar" value={domainInfo.Registrar} />
+                <StatusRow label="Hosting Provider" value={hosting.Provider} />
+                <StatusRow label="Email Provider" value={email.Provider} />
+                <StatusRow label="WordPress Detected" value={wordpress.Detected} />
+                <StatusRow label="SSL Status" value={security.SSL} />
+                <StatusRow label="Performance Rating" value={performance.Rating} />
               </>
             )}
 
@@ -356,59 +453,83 @@ export default function AuditResults({ results = {}, onNewAudit }) {
               <>
                 <div className="section-title">Technology Stack</div>
                 
-                {technology["javascript-frameworks"] && (
-                  <TechCategoryRow label="JavaScript Frameworks" items={technology["javascript-frameworks"]} />
+                {Object.keys(technology).length === 0 ? (
+                  <div style={{ padding: "20px", textAlign: "center", color: "#6B7280" }}>
+                    No technology detected
+                  </div>
+                ) : (
+                  <>
+                    {technology["javascript-frameworks"] && (
+                      <TechCategoryRow label="JavaScript Frameworks" items={technology["javascript-frameworks"]} />
+                    )}
+                    
+                    {technology["web-servers"] && (
+                      <TechCategoryRow label="Web Servers" items={technology["web-servers"]} />
+                    )}
+                    
+                    {technology["cms"] && (
+                      <TechCategoryRow label="Content Management Systems" items={technology["cms"]} />
+                    )}
+                    
+                    {technology["programming-languages"] && (
+                      <TechCategoryRow label="Programming Languages" items={technology["programming-languages"]} />
+                    )}
+                    
+                    {technology["tag-managers"] && (
+                      <TechCategoryRow label="Tag Managers" items={technology["tag-managers"]} />
+                    )}
+                    
+                    {technology["css-frameworks"] && (
+                      <TechCategoryRow label="CSS Frameworks" items={technology["css-frameworks"]} />
+                    )}
+                    
+                    {technology["analytics"] && (
+                      <TechCategoryRow label="Analytics" items={technology["analytics"]} />
+                    )}
+                    
+                    {/* Other technology categories */}
+                    {Object.keys(technology).filter(key => 
+                      !["javascript-frameworks", "web-servers", "cms", "programming-languages", "tag-managers", "css-frameworks", "analytics"].includes(key)
+                    ).map(key => (
+                      <TechCategoryRow key={key} label={key.replace(/-/g, ' ').toUpperCase()} items={technology[key]} />
+                    ))}
+                  </>
                 )}
-                
-                {technology["web-servers"] && (
-                  <TechCategoryRow label="Web Servers" items={technology["web-servers"]} />
-                )}
-                
-                {technology["cms"] && (
-                  <TechCategoryRow label="Content Management Systems" items={technology["cms"]} />
-                )}
-                
-                {technology["programming-languages"] && (
-                  <TechCategoryRow label="Programming Languages" items={technology["programming-languages"]} />
-                )}
-                
-                {technology["tag-managers"] && (
-                  <TechCategoryRow label="Tag Managers" items={technology["tag-managers"]} />
-                )}
-                
-                {technology["css-frameworks"] && (
-                  <TechCategoryRow label="CSS Frameworks" items={technology["css-frameworks"]} />
-                )}
-                
-                {Object.keys(technology).filter(key => 
-                  !["javascript-frameworks", "web-servers", "cms", "programming-languages", "tag-managers", "css-frameworks"].includes(key)
-                ).map(key => (
-                  <TechCategoryRow key={key} label={key.replace(/-/g, ' ').toUpperCase()} items={technology[key]} />
-                ))}
               </>
             )}
 
             {/* WORDPRESS TAB */}
             {activeTab === "wordpress" && (
               <>
-                <div className="section-title">WordPress Detection</div>
-                <Row label="WordPress Detected" value={wordpress.Detected} />
+                <div className="section-title">WordPress Analysis</div>
+                <StatusRow label="WordPress Detected" value={wordpress.Detected} />
                 <Row label="Confidence Level" value={wordpress.Confidence} />
-                <Row label="WordPress Version" value={wordpress.Version} />
-                <Row label="Active Theme" value={wordpress.Theme} />
                 
-                {wordpress.Plugins && (
+                {wordpress.Detected === "Yes" && (
                   <>
-                    <div className="section-title">Installed Plugins</div>
-                    <ListRow label={`Plugins (${wordpress.Plugins.length})`} items={wordpress.Plugins} />
+                    <Row label="WordPress Version" value={wordpress.Version} />
+                    <Row label="Active Theme" value={wordpress.Theme} />
+                    
+                    {wordpress.Plugins && wordpress.Plugins.length > 0 && (
+                      <>
+                        <div className="section-title">Installed Plugins</div>
+                        <ListRow label={`Detected Plugins (${wordpress.Plugins.length})`} items={wordpress.Plugins} />
+                      </>
+                    )}
                   </>
                 )}
                 
-                {wordpress["Security_Issues"] && (
-                  <>
-                    <div className="section-title">Security Issues</div>
-                    <ListRow label="Identified Issues" items={wordpress["Security_Issues"]} />
-                  </>
+                {wordpress.Detected === "No" && (
+                  <div style={{ 
+                    padding: "20px", 
+                    textAlign: "center", 
+                    color: "#6B7280",
+                    background: "#F9FAFB",
+                    borderRadius: "8px",
+                    marginTop: "16px"
+                  }}>
+                    WordPress not detected on this domain
+                  </div>
                 )}
               </>
             )}
@@ -417,16 +538,46 @@ export default function AuditResults({ results = {}, onNewAudit }) {
             {activeTab === "performance" && (
               <>
                 <div className="section-title">Performance Metrics</div>
-                <Row label="Load Time" value={performance["Load Time"]} />
-                <Row label="Page Size" value={performance["Page Size"]} />
-                <Row label="Performance Rating" value={performance.Rating} />
-                <Row label="Performance Score" value={performance.Score} />
-                <Row label="Status Code" value={performance["Status_Code"]} />
                 
-                <div className="section-title">Content Analysis</div>
-                <Row label="Images Count" value={performance["Images_Count"]} />
-                <Row label="Scripts Count" value={performance["Scripts_Count"]} />
-                <Row label="Stylesheets Count" value={performance["Stylesheets_Count"]} />
+                {performance.Status === "Failed to load" ? (
+                  <div style={{ 
+                    padding: "20px", 
+                    textAlign: "center", 
+                    color: "#EF4444",
+                    background: "#FEF2F2",
+                    borderRadius: "8px"
+                  }}>
+                    Failed to load performance data
+                  </div>
+                ) : (
+                  <>
+                    <div className="metrics-grid">
+                      <div className="metric-card">
+                        <div className="metric-value">{performance["Load Time"] || "N/A"}</div>
+                        <div className="metric-label">LOAD TIME</div>
+                      </div>
+                      <div className="metric-card">
+                        <div className="metric-value">{performance["Page Size"] || "N/A"}</div>
+                        <div className="metric-label">PAGE SIZE</div>
+                      </div>
+                      <div className="metric-card">
+                        <div className="metric-value">{performance.Score || "N/A"}</div>
+                        <div className="metric-label">PERFORMANCE SCORE</div>
+                      </div>
+                      <div className="metric-card">
+                        <div className="metric-value">{performance.Rating || "N/A"}</div>
+                        <div className="metric-label">RATING</div>
+                      </div>
+                    </div>
+
+                    <ScoreBadge score={performance.Score} label="Overall Performance Score" />
+                    
+                    <div className="section-title">Content Analysis</div>
+                    <Row label="Images Count" value={performance["Images Count"]} />
+                    <Row label="Scripts Count" value={performance["Scripts Count"]} />
+                    <Row label="Stylesheets Count" value={performance["Stylesheets Count"]} />
+                  </>
+                )}
               </>
             )}
 
@@ -434,7 +585,7 @@ export default function AuditResults({ results = {}, onNewAudit }) {
             {activeTab === "security" && (
               <>
                 <div className="section-title">SSL/TLS Security</div>
-                <Row label="SSL Certificate" value={security.SSL} />
+                <StatusRow label="SSL Certificate" value={security.SSL} />
                 <Row label="TLS Version" value={security.TLS} />
                 <Row label="Certificate Expiry" value={security.Expires} />
                 
@@ -463,20 +614,30 @@ export default function AuditResults({ results = {}, onNewAudit }) {
               <>
                 <div className="section-title">Analytics & Tracking</div>
                 
-                {tracking.Analytics && (
+                {tracking.Analytics && tracking.Analytics.length > 0 && (
                   <ListRow label="Analytics Services" items={tracking.Analytics} />
                 )}
                 
-                {tracking["Ad Networks"] && (
+                {tracking["Ad Networks"] && tracking["Ad Networks"].length > 0 && (
                   <ListRow label="Advertising Networks" items={tracking["Ad Networks"]} />
                 )}
                 
-                {tracking["Social_Media"] && (
+                {tracking["Social_Media"] && tracking["Social_Media"].length > 0 && (
                   <ListRow label="Social Media Integrations" items={tracking["Social_Media"]} />
                 )}
                 
-                {tracking.Trackers && (
-                  <ListRow label="Tracking Scripts" items={tracking.Trackers} />
+                {(!tracking.Analytics || tracking.Analytics.length === 0) && 
+                 (!tracking["Ad Networks"] || tracking["Ad Networks"].length === 0) && 
+                 (!tracking["Social_Media"] || tracking["Social_Media"].length === 0) && (
+                  <div style={{ 
+                    padding: "20px", 
+                    textAlign: "center", 
+                    color: "#6B7280",
+                    background: "#F9FAFB",
+                    borderRadius: "8px"
+                  }}>
+                    No tracking or analytics services detected
+                  </div>
                 )}
               </>
             )}
