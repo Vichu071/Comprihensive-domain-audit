@@ -17,6 +17,10 @@ import urllib3
 from datetime import datetime
 import concurrent.futures
 
+# ============================================================
+# ⚙️ Setup & Config
+# ============================================================
+
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 logging.basicConfig(
@@ -26,7 +30,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("domain-audit")
 
-app = FastAPI(title="Domain Audit API", version="7.0")
+app = FastAPI(title="Domain Audit API", version="9.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -52,10 +56,11 @@ def normalize_domain(domain: str) -> str:
     domain = re.sub(r"/.*$", "", domain)
     return domain.split(':')[0]
 
-def fetch_with_fallback(domain: str, path: str = "/", timeout: int = 12) -> Tuple[str, str, Dict]:
+def fetch_with_fallback(domain: str, path: str = "/", timeout: int = 20) -> Tuple[str, str, Dict]:
     user_agents = [
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     ]
     
     for proto in ("https", "http"):
@@ -66,11 +71,12 @@ def fetch_with_fallback(domain: str, path: str = "/", timeout: int = 12) -> Tupl
                     'User-Agent': user_agent,
                     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
                     'Accept-Language': 'en-US,en;q=0.5',
+                    'Accept-Encoding': 'gzip, deflate',
                 }
                 resp = session.get(url, headers=headers, timeout=timeout, verify=False, allow_redirects=True)
-                if resp.status_code == 200 and len(resp.text) > 500:
+                if resp.status_code == 200:
                     return resp.text, url, dict(resp.headers)
-            except Exception:
+            except Exception as e:
                 continue
     return "", "", {}
 
@@ -240,76 +246,103 @@ def detect_email_provider(mx: List[str]) -> Optional[str]:
 def detect_tech(domain: str) -> Dict[str, List[str]]:
     tech = {}
     
+    # First try builtwith
     try:
         builtwith_result = builtwith.parse(f"https://{domain}")
         for category, technologies in builtwith_result.items():
             if technologies:
                 tech[category] = list(set(technologies))
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug(f"BuiltWith failed: {e}")
     
-    html, _, _ = fetch_with_fallback(domain)
+    # Enhanced manual detection
+    html, _, headers = fetch_with_fallback(domain)
     if not html:
         return tech
     
     html_lower = html.lower()
     
-    if "react" in html_lower and ("react." in html_lower or "/react/" in html_lower):
+    # Server detection from headers
+    server = headers.get("Server", "").lower()
+    if server:
+        if "nginx" in server:
+            tech.setdefault("web-servers", []).append("Nginx")
+        elif "apache" in server:
+            tech.setdefault("web-servers", []).append("Apache")
+        elif "iis" in server:
+            tech.setdefault("web-servers", []).append("Microsoft IIS")
+        elif "cloudflare" in server:
+            tech.setdefault("web-servers", []).append("Cloudflare")
+    
+    # Framework detection
+    if "react" in html_lower:
         tech.setdefault("javascript-frameworks", []).append("React")
     
-    if "vue" in html_lower and ("vue.js" in html_lower or "vue/" in html_lower):
+    if "vue" in html_lower:
         tech.setdefault("javascript-frameworks", []).append("Vue.js")
     
-    if "jquery" in html_lower and ("jquery" in html_lower or "/jquery/" in html_lower):
+    if "angular" in html_lower:
+        tech.setdefault("javascript-frameworks", []).append("Angular")
+    
+    if "jquery" in html_lower:
         tech.setdefault("javascript-frameworks", []).append("jQuery")
     
     if "bootstrap" in html_lower:
         tech.setdefault("css-frameworks", []).append("Bootstrap")
     
+    # CMS detection
+    if any(indicator in html_lower for indicator in ["wp-content", "wp-includes", "wordpress"]):
+        tech.setdefault("cms", []).append("WordPress")
+    
+    if "joomla" in html_lower:
+        tech.setdefault("cms", []).append("Joomla")
+    
+    if "drupal" in html_lower:
+        tech.setdefault("cms", []).append("Drupal")
+    
+    # Programming languages
+    if ".php" in html_lower or "php" in headers.get("X-Powered-By", "").lower():
+        tech.setdefault("programming-languages", []).append("PHP")
+    
+    if ".aspx" in html_lower or "asp.net" in headers.get("X-Powered-By", "").lower():
+        tech.setdefault("programming-languages", []).append("ASP.NET")
+    
+    # Analytics detection
+    if "google-analytics" in html_lower or "gtag" in html_lower:
+        tech.setdefault("analytics", []).append("Google Analytics")
+    
+    if "googletagmanager" in html_lower:
+        tech.setdefault("tag-managers", []).append("Google Tag Manager")
+    
+    if "facebook.net" in html_lower or "fbq(" in html_lower:
+        tech.setdefault("analytics", []).append("Facebook Pixel")
+    
     return tech
 
-def get_verified_wordpress_theme(domain: str, html: str) -> Optional[str]:
+def detect_wordpress_theme(html: str, domain: str) -> Optional[str]:
     if not html:
         return None
     
+    # Look for theme in multiple patterns
     theme_patterns = [
-        r'/wp-content/themes/([^/]+)/',
-        r'/themes/([^/]+)/',
+        r'/wp-content/themes/([^/"\']+)/',
+        r'/themes/([^/"\']+)/',
     ]
     
-    theme_slug = None
     for pattern in theme_patterns:
         matches = re.findall(pattern, html, re.IGNORECASE)
         if matches:
-            theme_slug = matches[0]
-            break
-    
-    if not theme_slug:
-        return None
-    
-    style_urls = [
-        f"/wp-content/themes/{theme_slug}/style.css",
-        f"/themes/{theme_slug}/style.css",
-    ]
-    
-    for style_url in style_urls:
-        try:
-            css_content, _, _ = fetch_with_fallback(domain, style_url, 8)
-            if css_content:
-                theme_name_match = re.search(r'Theme Name:\s*(.+)', css_content, re.IGNORECASE)
-                if theme_name_match:
-                    return theme_name_match.group(1).strip()
-        except:
-            continue
+            return matches[0].title()
     
     return None
 
-def get_verified_wordpress_version(html: str) -> Optional[str]:
+def detect_wordpress_version(html: str) -> Optional[str]:
     if not html:
         return None
     
     soup = BeautifulSoup(html, 'html.parser')
     
+    # Check generator meta tag
     generator = soup.find('meta', attrs={'name': 'generator'})
     if generator and 'wordpress' in generator.get('content', '').lower():
         version_match = re.search(r'wordpress\s*([\d.]+)', generator.get('content', ''), re.IGNORECASE)
@@ -326,23 +359,26 @@ def detect_wordpress_plugins(html: str) -> List[str]:
     
     html_lower = html.lower()
     
+    # Plugin indicators
     plugin_indicators = {
-        "Yoast SEO": ["yoast-seo", "wpseo_"],
-        "Elementor": ["elementor", "elementor-"],
+        "Yoast SEO": ["yoast", "wpseo"],
+        "Elementor": ["elementor"],
         "WooCommerce": ["woocommerce", "wc-"],
         "Contact Form 7": ["contact-form-7", "wpcf7"],
         "WP Rocket": ["wp-rocket"],
-        "LiteSpeed Cache": ["litespeed-cache"],
-        "Jetpack": ["jetpack", "jp-"],
+        "LiteSpeed Cache": ["litespeed"],
+        "Jetpack": ["jetpack"],
         "Akismet": ["akismet"],
         "Wordfence": ["wordfence"],
     }
     
+    # Check for plugin directories in URLs
     plugin_dir_matches = re.findall(r'/wp-content/plugins/([^/"]+)/', html_lower)
     for plugin_dir in plugin_dir_matches:
         plugin_name = plugin_dir.replace('-', ' ').title()
         plugins_found.add(plugin_name)
     
+    # Check HTML content for specific indicators
     for plugin_name, indicators in plugin_indicators.items():
         for indicator in indicators:
             if indicator in html_lower:
@@ -352,40 +388,45 @@ def detect_wordpress_plugins(html: str) -> List[str]:
     return sorted(list(plugins_found))
 
 def detect_wordpress(domain: str) -> Dict[str, Any]:
-    wp_info = {}
+    wp_info = {"Detected": "No", "Confidence": "0%"}
     
-    html, _, _ = fetch_with_fallback(domain)
+    html, _, headers = fetch_with_fallback(domain)
     if not html:
         return wp_info
     
     html_lower = html.lower()
     
+    # WordPress indicators
     wp_indicators = [
-        "wp-content", "wp-includes", "wordpress", "/wp-json/"
+        "wp-content", "wp-includes", "wordpress", "wp-json", "wp-admin"
     ]
     
     wp_count = sum(1 for indicator in wp_indicators if indicator in html_lower)
-    if wp_count < 2:
-        return wp_info
     
-    wp_info["Detected"] = "Yes"
-    
-    version = get_verified_wordpress_version(html)
-    if version:
-        wp_info["Version"] = version
-    
-    theme = get_verified_wordpress_theme(domain, html)
-    if theme:
-        wp_info["Theme"] = theme
-    
-    plugins = detect_wordpress_plugins(html)
-    if plugins:
-        wp_info["Plugins"] = plugins
+    # If we have at least 2 indicators, consider it WordPress
+    if wp_count >= 2:
+        wp_info["Detected"] = "Yes"
+        wp_info["Confidence"] = f"{int((wp_count / len(wp_indicators)) * 100)}%"
+        
+        # Get version
+        version = detect_wordpress_version(html)
+        if version:
+            wp_info["Version"] = version
+        
+        # Get theme
+        theme = detect_wordpress_theme(html, domain)
+        if theme:
+            wp_info["Theme"] = theme
+        
+        # Get plugins
+        plugins = detect_wordpress_plugins(html)
+        if plugins:
+            wp_info["Plugins"] = plugins
     
     return wp_info
 
 def detect_ads_and_tracking(domain: str) -> Dict[str, List[str]]:
-    ads_data = {}
+    ads_data = {"Analytics": [], "Ad Networks": []}
     
     html, _, _ = fetch_with_fallback(domain)
     if not html:
@@ -393,39 +434,35 @@ def detect_ads_and_tracking(domain: str) -> Dict[str, List[str]]:
     
     html_lower = html.lower()
     
+    # Analytics services
     analytics_services = {
-        "Google Analytics": ["google-analytics.com/ga.js", "www.google-analytics.com/analytics.js", "googletagmanager.com/gtag/js"],
-        "Google Tag Manager": ["googletagmanager.com/gtm.js", "www.googletagmanager.com/gtm.js"],
-        "Facebook Pixel": ["facebook.net/en_US/fbevents.js", "connect.facebook.net/en_US/fbevents.js"],
-        "Hotjar": ["static.hotjar.com"],
-        "Microsoft Clarity": ["clarity.ms/tag"],
+        "Google Analytics": ["google-analytics.com", "gtag(", "ga.js", "analytics.js"],
+        "Google Tag Manager": ["googletagmanager.com", "gtm.js"],
+        "Facebook Pixel": ["facebook.net", "fbq(", "connect.facebook.net"],
+        "Hotjar": ["hotjar.com"],
+        "Microsoft Clarity": ["clarity.ms"],
     }
     
+    # Ad networks
     ad_networks = {
         "Google AdSense": ["googleads.g.doubleclick.net", "pagead2.googlesyndication.com"],
-        "Google Ad Manager": ["securepubads.g.doubleclick.net", "googletagservices.com/tag/js/gpt.js"],
+        "Google Ad Manager": ["securepubads.g.doubleclick.net", "googletagservices.com"],
         "Amazon Associates": ["amazon-adsystem.com"],
     }
     
-    analytics_found = []
+    # Detect analytics
     for service, patterns in analytics_services.items():
         for pattern in patterns:
             if pattern in html_lower:
-                analytics_found.append(service)
+                ads_data["Analytics"].append(service)
                 break
     
-    if analytics_found:
-        ads_data["Analytics"] = analytics_found
-    
-    ads_found = []
+    # Detect ad networks
     for network, patterns in ad_networks.items():
         for pattern in patterns:
             if pattern in html_lower:
-                ads_found.append(network)
+                ads_data["Ad Networks"].append(network)
                 break
-    
-    if ads_found:
-        ads_data["Ad Networks"] = ads_found
     
     return ads_data
 
@@ -472,33 +509,52 @@ def analyze_performance(domain: str) -> Dict[str, Any]:
     html, url, headers = fetch_with_fallback(domain)
     
     if not html:
-        return {"Status": "Failed to load"}
+        return {
+            "Status": "Failed to load", 
+            "Load Time": "N/A", 
+            "Page Size": "N/A", 
+            "Rating": "Failed",
+            "Score": "F"
+        }
     
     load_time = round(time.time() - start, 2)
     size = len(html.encode()) / 1024
     
     perf = {
         "Load Time": f"{load_time}s",
-        "Page Size": f"{size:.1f} KB"
+        "Page Size": f"{size:.1f} KB",
+        "Status": "Success"
     }
     
+    # Performance rating
     if load_time < 1.0:
         perf["Rating"] = "Excellent"
+        perf["Score"] = "A"
     elif load_time < 2.0:
         perf["Rating"] = "Good"
+        perf["Score"] = "B"
     elif load_time < 3.0:
         perf["Rating"] = "Average"
-    else:
+        perf["Score"] = "C"
+    elif load_time < 5.0:
         perf["Rating"] = "Slow"
+        perf["Score"] = "D"
+    else:
+        perf["Rating"] = "Very Slow"
+        perf["Score"] = "F"
     
     return perf
 
 def run_parallel(domain: str):
+    results = {}
+    
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as ex:
+        # Get WHOIS info first for nameservers
         whois_future = ex.submit(get_whois_info, domain)
-        whois_info = whois_future.result(timeout=20)
+        whois_info = whois_future.result(timeout=25)
         nameservers = whois_info.get("Nameservers", [])
         
+        # Submit all other tasks
         futures = {
             "whois": whois_future,
             "hosting": ex.submit(get_hosting_info, domain, nameservers),
@@ -511,23 +567,37 @@ def run_parallel(domain: str):
             "ads": ex.submit(detect_ads_and_tracking, domain),
         }
         
-        results = {}
-        for k, f in futures.items():
+        # Collect results
+        for name, future in futures.items():
             try:
-                result = f.result(timeout=25)
-                if result:
-                    results[k] = result
+                result = future.result(timeout=30)
+                results[name] = result
             except Exception as e:
-                logger.debug(f"Task {k} failed: {e}")
+                logger.debug(f"Task {name} failed: {e}")
+                # Set default values
+                if name == "wp":
+                    results[name] = {"Detected": "No", "Confidence": "0%"}
+                elif name == "perf":
+                    results[name] = {"Status": "Failed to load", "Load Time": "N/A", "Page Size": "N/A", "Rating": "Failed", "Score": "F"}
+                elif name == "ads":
+                    results[name] = {"Analytics": [], "Ad Networks": []}
+                elif name == "tech":
+                    results[name] = {}
+                else:
+                    results[name] = {}
     
+    # Build final results
     final_results = {}
     
+    # Domain Info
     if results.get("whois"):
         final_results["Domain Info"] = results["whois"]
     
+    # Hosting
     if results.get("hosting"):
         final_results["Hosting"] = results["hosting"]
     
+    # Email
     mx_records = results.get("mx", [])
     if mx_records:
         email_info = {
@@ -546,29 +616,31 @@ def run_parallel(domain: str):
         
         final_results["Email"] = email_info
     
+    # Technology
     if results.get("tech"):
         final_results["Technology"] = results["tech"]
     
-    if results.get("wp"):
-        final_results["WordPress"] = results["wp"]
+    # WordPress
+    final_results["WordPress"] = results.get("wp", {"Detected": "No", "Confidence": "0%"})
     
+    # Security
     if results.get("security"):
         final_results["Security"] = results["security"]
     
-    if results.get("perf"):
-        final_results["Performance"] = results["perf"]
+    # Performance
+    final_results["Performance"] = results.get("perf", {"Status": "Failed to load", "Load Time": "N/A", "Page Size": "N/A", "Rating": "Failed", "Score": "F"})
     
-    if results.get("ads"):
-        final_results["Tracking"] = results["ads"]
+    # Tracking
+    final_results["Tracking"] = results.get("ads", {"Analytics": [], "Ad Networks": []})
     
     return final_results
 
 @app.get("/")
 def home():
     return {
-        "message": "Domain Audit API v7.0", 
+        "message": "Domain Audit API v9.0", 
         "status": "running",
-        "version": "7.0"
+        "version": "9.0"
     }
 
 @app.get("/audit/{domain}")
@@ -606,7 +678,7 @@ def health():
     return {
         "status": "healthy", 
         "timestamp": datetime.utcnow().isoformat(),
-        "service": "Domain Audit API v7.0"
+        "service": "Domain Audit API v9.0"
     }
 
 if __name__ == "__main__":
