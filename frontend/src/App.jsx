@@ -53,7 +53,7 @@ function App() {
     const progressInterval = simulateProgress()
 
     try {
-      const response = await fetch(`https://comprihensive-domain-audit-x2iq-kyvbbp9eq-vichu071s-projects.vercel.app/audit/${domain}`)
+      const response = await fetch(`https://comprihensive-domain-audit-x2iq.vercel.app/audit/${domain}`)
       if (!response.ok) {
         throw new Error(`Server error: ${response.status}`)
       }
