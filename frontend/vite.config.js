@@ -7,7 +7,7 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'https://comprihensive-domain-audit-x2iq-kyvbbp9eq-vichu071s-projects.vercel.app',
+        target: 'https://comprihensive-domain-audit-x2iq.vercel.app',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
       }
