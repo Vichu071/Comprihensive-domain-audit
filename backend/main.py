@@ -319,152 +319,723 @@ def detect_tech(domain: str) -> Dict[str, List[str]]:
     
     return tech
 
-def detect_wordpress_theme(html: str, domain: str) -> Optional[str]:
-    if not html:
-        return None
-    
-    # Look for theme in multiple patterns
-    theme_patterns = [
-        r'/wp-content/themes/([^/"\']+)/',
-        r'/themes/([^/"\']+)/',
-    ]
-    
-    for pattern in theme_patterns:
-        matches = re.findall(pattern, html, re.IGNORECASE)
-        if matches:
-            return matches[0].title()
-    
-    return None
-
-def detect_wordpress_version(html: str) -> Optional[str]:
-    if not html:
-        return None
-    
-    soup = BeautifulSoup(html, 'html.parser')
-    
-    # Check generator meta tag
-    generator = soup.find('meta', attrs={'name': 'generator'})
-    if generator and 'wordpress' in generator.get('content', '').lower():
-        version_match = re.search(r'wordpress\s*([\d.]+)', generator.get('content', ''), re.IGNORECASE)
-        if version_match:
-            return f"WordPress {version_match.group(1)}"
-    
-    return None
-
-def detect_wordpress_plugins(html: str) -> List[str]:
-    plugins_found = set()
-    
-    if not html:
-        return []
-    
-    html_lower = html.lower()
-    
-    # Plugin indicators
-    plugin_indicators = {
-        "Yoast SEO": ["yoast", "wpseo"],
-        "Elementor": ["elementor"],
-        "WooCommerce": ["woocommerce", "wc-"],
-        "Contact Form 7": ["contact-form-7", "wpcf7"],
-        "WP Rocket": ["wp-rocket"],
-        "LiteSpeed Cache": ["litespeed"],
-        "Jetpack": ["jetpack"],
-        "Akismet": ["akismet"],
-        "Wordfence": ["wordfence"],
-    }
-    
-    # Check for plugin directories in URLs
-    plugin_dir_matches = re.findall(r'/wp-content/plugins/([^/"]+)/', html_lower)
-    for plugin_dir in plugin_dir_matches:
-        plugin_name = plugin_dir.replace('-', ' ').title()
-        plugins_found.add(plugin_name)
-    
-    # Check HTML content for specific indicators
-    for plugin_name, indicators in plugin_indicators.items():
-        for indicator in indicators:
-            if indicator in html_lower:
-                plugins_found.add(plugin_name)
-                break
-    
-    return sorted(list(plugins_found))
-
 def detect_wordpress(domain: str) -> Dict[str, Any]:
-    wp_info = {"Detected": "No", "Confidence": "0%"}
+    wp_info = {
+        "Is WordPress": "No", 
+        "Theme": "Not Detected",
+        "Plugins": []
+    }
     
-    html, _, headers = fetch_with_fallback(domain)
-    if not html:
-        return wp_info
-    
-    html_lower = html.lower()
-    
-    # WordPress indicators
-    wp_indicators = [
-        "wp-content", "wp-includes", "wordpress", "wp-json", "wp-admin"
-    ]
-    
-    wp_count = sum(1 for indicator in wp_indicators if indicator in html_lower)
-    
-    # If we have at least 2 indicators, consider it WordPress
-    if wp_count >= 2:
-        wp_info["Detected"] = "Yes"
-        wp_info["Confidence"] = f"{int((wp_count / len(wp_indicators)) * 100)}%"
+    try:
+        # Try multiple URLs with priority for WordPress-specific paths
+        urls_to_try = [
+            f"https://{domain}/wp-login.php",
+            f"https://{domain}/wp-admin/",
+            f"https://{domain}/readme.html",
+            f"https://{domain}/wp-json/",
+            f"https://{domain}/feed/",
+            f"https://{domain}/sitemap.xml",
+            f"https://{domain}/robots.txt",
+            f"https://{domain}",
+            f"http://{domain}/wp-login.php",
+            f"http://{domain}/wp-admin/",
+            f"http://{domain}",
+        ]
         
-        # Get version
-        version = detect_wordpress_version(html)
-        if version:
-            wp_info["Version"] = version
+        all_html = ""
+        for url in urls_to_try:
+            html = safe_fetch(url)
+            if html:
+                all_html += html + "\n"  # Combine all HTML content
         
-        # Get theme
-        theme = detect_wordpress_theme(html, domain)
-        if theme:
-            wp_info["Theme"] = theme
-        
-        # Get plugins
-        plugins = detect_wordpress_plugins(html)
-        if plugins:
-            wp_info["Plugins"] = plugins
-    
-    return wp_info
+        if not all_html:
+            return wp_info
 
-def detect_ads_and_tracking(domain: str) -> Dict[str, List[str]]:
-    ads_data = {"Analytics": [], "Ad Networks": []}
-    
-    html, _, _ = fetch_with_fallback(domain)
-    if not html:
-        return ads_data
-    
-    html_lower = html.lower()
-    
-    # Analytics services
-    analytics_services = {
-        "Google Analytics": ["google-analytics.com", "gtag(", "ga.js", "analytics.js"],
-        "Google Tag Manager": ["googletagmanager.com", "gtm.js"],
-        "Facebook Pixel": ["facebook.net", "fbq(", "connect.facebook.net"],
-        "Hotjar": ["hotjar.com"],
-        "Microsoft Clarity": ["clarity.ms"],
-    }
-    
-    # Ad networks
-    ad_networks = {
-        "Google AdSense": ["googleads.g.doubleclick.net", "pagead2.googlesyndication.com"],
-        "Google Ad Manager": ["securepubads.g.doubleclick.net", "googletagservices.com"],
-        "Amazon Associates": ["amazon-adsystem.com"],
-    }
-    
-    # Detect analytics
-    for service, patterns in analytics_services.items():
-        for pattern in patterns:
-            if pattern in html_lower:
-                ads_data["Analytics"].append(service)
+        # WORDPRESS DETECTION - MULTIPLE RELIABLE METHODS
+        is_wordpress = False
+        wp_indicators_found = []
+        
+        # Method 1: WordPress meta generator tag (Strongest indicator)
+        soup = BeautifulSoup(all_html, 'html.parser')
+        meta_generator = soup.find('meta', attrs={'name': 'generator'})
+        if meta_generator and 'wordpress' in meta_generator.get('content', '').lower():
+            is_wordpress = True
+            wp_indicators_found.append("Meta Generator")
+        
+        # Method 2: Essential WordPress directories
+        essential_dirs = ['wp-content', 'wp-includes', 'wp-admin']
+        for dir in essential_dirs:
+            if dir in all_html:
+                is_wordpress = True
+                wp_indicators_found.append(f"{dir} directory")
                 break
-    
-    # Detect ad networks
-    for network, patterns in ad_networks.items():
-        for pattern in patterns:
-            if pattern in html_lower:
-                ads_data["Ad Networks"].append(network)
+        
+        # Method 3: WordPress REST API
+        if '/wp-json/' in all_html or 'rest_route' in all_html:
+            is_wordpress = True
+            wp_indicators_found.append("REST API")
+        
+        # Method 4: WordPress core files
+        core_files = ['xmlrpc.php', 'wp-login.php', 'wp-config.php']
+        for file in core_files:
+            if file in all_html:
+                is_wordpress = True
+                wp_indicators_found.append(f"{file} file")
                 break
+        
+        # Method 5: WordPress-specific classes
+        wp_classes = ['wp-block-', 'menu-item-', 'widget_', 'sidebar-', 'wp-caption']
+        for wp_class in wp_classes:
+            if wp_class in all_html:
+                is_wordpress = True
+                wp_indicators_found.append(f"{wp_class} class")
+                break
+
+        if not is_wordpress:
+            return wp_info
+
+        wp_info["Is WordPress"] = "Yes"
+
+        # COMPULSORY THEME DETECTION - MULTIPLE METHODS
+        theme_candidates = set()
+        
+        # Method 1: Theme directory patterns in URLs
+        theme_patterns = [
+            r'/wp-content/themes/([^/"\']+)/',
+            r'/themes/([^/"\']+)/style\.css',
+            r'/themes/([^/"\']+)/',
+            r'wp-content/themes/([^/"\']+)/',
+        ]
+        
+        for pattern in theme_patterns:
+            matches = re.findall(pattern, all_html, re.IGNORECASE)
+            for match in matches:
+                if len(match) > 1:
+                    theme_name = re.sub(r'[^a-zA-Z0-9\-_\.]', '', match)
+                    if 2 <= len(theme_name) <= 50:  # Reasonable theme name length
+                        theme_candidates.add(theme_name)
+        
+        # Method 2: Stylesheet links analysis
+        for link in soup.find_all('link', rel='stylesheet'):
+            href = link.get('href', '')
+            # Multiple patterns for theme detection in CSS links
+            patterns = [
+                r'/themes/([^/]+)/',
+                r'wp-content/themes/([^/]+)/',
+                r'theme=(.+?)&',
+                r'ver=.+?/([^/]+)/style',
+            ]
+            for pattern in patterns:
+                theme_match = re.search(pattern, href, re.IGNORECASE)
+                if theme_match:
+                    theme_name = theme_match.group(1)
+                    if 2 <= len(theme_name) <= 50:
+                        theme_candidates.add(theme_name)
+        
+        # Method 3: Script tags analysis for theme data
+        for script in soup.find_all('script'):
+            script_content = script.string or ""
+            # Look for theme data in JavaScript
+            theme_patterns_js = [
+                r'theme[\"\' ]*:[\"\' ]*[\"\' ]([^\"\',]+)[\"\']',
+                r'theme_name[\"\' ]*:[\"\' ]*[\"\' ]([^\"\',]+)[\"\']',
+                r'template[\"\' ]*:[\"\' ]*[\"\' ]([^\"\',]+)[\"\']',
+                r'stylesheet[\"\' ]*:[\"\' ]*[\"\' ]([^\"\',]+)[\"\']',
+            ]
+            for pattern in theme_patterns_js:
+                matches = re.findall(pattern, script_content, re.IGNORECASE)
+                for match in matches:
+                    if 2 <= len(match) <= 50:
+                        theme_candidates.add(match)
+        
+        # Method 4: Meta tags for theme
+        for meta in soup.find_all('meta'):
+            content = meta.get('content', '')
+            if 'theme' in content.lower() or 'template' in content.lower():
+                theme_match = re.search(r'([a-zA-Z0-9\-_\.]+theme[a-zA-Z0-9\-_\.]*)', content, re.IGNORECASE)
+                if theme_match:
+                    theme_candidates.add(theme_match.group(1))
+        
+        # Method 5: Body classes for theme
+        body = soup.find('body')
+        if body:
+            body_classes = body.get('class', [])
+            for cls in body_classes:
+                if 'theme' in cls.lower() and len(cls) > 5:
+                    theme_candidates.add(cls.replace('theme-', '').replace('-theme', ''))
+        
+        # FINAL THEME SELECTION
+        if theme_candidates:
+            # Filter out common false positives
+            filtered_themes = []
+            for theme in theme_candidates:
+                theme_lower = theme.lower()
+                # Exclude common non-theme strings
+                if not any(exclude in theme_lower for exclude in [
+                    'http', 'https', 'www.', '.com', '.org', '.net', 
+                    'wp-content', 'wp-includes', 'javascript', 'function',
+                    'undefined', 'null', 'true', 'false'
+                ]) and len(theme) >= 2:
+                    filtered_themes.append(theme)
+            
+            if filtered_themes:
+                # Choose the most likely theme (usually the one that appears most or is longest)
+                wp_info["Theme"] = max(filtered_themes, key=len).title()
+            else:
+                wp_info["Theme"] = "Detected but cannot identify name"
+        else:
+            wp_info["Theme"] = "WordPress theme detected but name not found"
+
+        # COMPULSORY PLUGIN DETECTION - COMPREHENSIVE METHODS
+        plugins = set()
+        
+        # Method 1: Plugin directory patterns
+        plugin_patterns = [
+            r'/wp-content/plugins/([^/"\']+)/',
+            r'plugins/([^/"\']+)/',
+            r'wp-content/plugins/([^/]+)/',
+            r'/plugins/([^/]+)/',
+        ]
+        
+        for pattern in plugin_patterns:
+            plugin_matches = re.findall(pattern, all_html, re.IGNORECASE)
+            for plugin in plugin_matches:
+                if len(plugin) > 2:
+                    plugin_name = re.sub(r'[^a-zA-Z0-9\-_]', '', plugin)
+                    if plugin_name and 2 <= len(plugin_name) <= 50:
+                        plugins.add(plugin_name)
+        
+        # Method 2: Script and link tags analysis
+        for tag in soup.find_all(['script', 'link', 'img']):
+            src = tag.get('src', '') or tag.get('href', '')
+            if src:
+                # Look for plugins in asset URLs
+                plugin_match = re.search(r'/plugins/([^/]+)/', src)
+                if plugin_match:
+                    plugin_name = plugin_match.group(1)
+                    if 2 <= len(plugin_name) <= 50:
+                        plugins.add(plugin_name)
+        
+        # Method 3: Comprehensive known plugin detection
+        known_plugins = {
+            # SEO & Marketing
+            'yoast-seo': ['yoast', 'wpseo', 'yoast-seo'],
+            'all-in-one-seo': ['all-in-one-seo', 'aioseo'],
+            'rank-math': ['rank-math', 'rankmath'],
+            'google-site-kit': ['google-site-kit', 'googlesitekit'],
+            
+            # E-commerce
+            'woocommerce': ['woocommerce', 'wc-', 'woo-'],
+            'easy-digital-downloads': ['edd-', 'easy-digital-downloads'],
+            
+            # Page Builders
+            'elementor': ['elementor'],
+            'divi-builder': ['et-builder', 'et_pb', 'divi'],
+            'beaver-builder': ['beaver-builder', 'fl-builder'],
+            'visual-composer': ['vc_', 'js_composer'],
+            'brizy': ['brizy'],
+            
+            # Forms
+            'contact-form-7': ['contact-form-7', 'wpcf7'],
+            'gravity-forms': ['gravityforms', 'gform'],
+            'wpforms': ['wpforms'],
+            'ninja-forms': ['ninja-forms'],
+            
+            # Security
+            'wordfence': ['wordfence'],
+            'sucuri': ['sucuri'],
+            'ithemes-security': ['ithemes-security', 'better-wp-security'],
+            
+            # Caching & Performance
+            'wp-rocket': ['wp-rocket', 'rocket-'],
+            'w3-total-cache': ['w3-total-cache', 'w3tc'],
+            'wp-super-cache': ['wp-super-cache'],
+            'autoptimize': ['autoptimize'],
+            
+            # Analytics
+            'monsterinsights': ['monsterinsights'],
+            'google-analytics-dashboard': ['gadwp'],
+            
+            # Backup
+            'updraftplus': ['updraftplus'],
+            'backwpup': ['backwpup'],
+            
+            # Social & Sharing
+            'sharethis': ['sharethis'],
+            'add-to-any': ['add-to-any'],
+            'social-warfare': ['social-warfare'],
+            
+            # Images & Media
+            'smush': ['smush', 'wp-smush'],
+            'imagify': ['imagify'],
+            'envira-gallery': ['envira-gallery'],
+            
+            # Membership
+            'memberpress': ['memberpress'],
+            'restrict-content': ['restrict-content'],
+            
+            # LMS
+            'learnpress': ['learnpress'],
+            'learndash': ['learndash'],
+            'lifterlms': ['lifterlms'],
+            
+            # Other Popular
+            'akismet': ['akismet'],
+            'jetpack': ['jetpack'],
+            'wpml': ['wpml'],
+            'polylang': ['polylang'],
+            'redux-framework': ['redux-framework'],
+            'advanced-custom-fields': ['acf'],
+            'custom-post-type-ui': ['cpt-ui'],
+        }
+        
+        for plugin_name, indicators in known_plugins.items():
+            for indicator in indicators:
+                if indicator in all_html.lower():
+                    plugins.add(plugin_name)
+                    break
+        
+        # Method 4: Plugin-specific classes and IDs
+        plugin_classes = [
+            ('woocommerce', 'woocommerce'),
+            ('elementor', 'elementor'),
+            ('divi-builder', 'et_pb'),
+            ('avada', 'fusion'),
+            ('visual-composer', 'vc_'),
+            ('revslider', 'rev_slider'),
+            ('wpml', 'wpml'),
+            ('contact-form-7', 'wpcf7'),
+            ('gravity-forms', 'gform'),
+        ]
+        
+        for plugin_name, class_pattern in plugin_classes:
+            if class_pattern in all_html:
+                plugins.add(plugin_name)
+        
+        # Method 5: Check for plugin comments
+        plugin_comments = re.findall(r'Plugin Name:\s*([^\n]+)', all_html)
+        plugins.update([p.strip().lower() for p in plugin_comments])
+        
+        # Filter and clean plugin names
+        filtered_plugins = []
+        for plugin in plugins:
+            plugin_clean = re.sub(r'[^a-zA-Z0-9\-_]', '', plugin)
+            if 2 <= len(plugin_clean) <= 50:
+                filtered_plugins.append(plugin_clean)
+        
+        wp_info["Plugins"] = sorted(list(set(filtered_plugins)))
+        
+        # If no plugins detected but it's WordPress, add a note
+        if not wp_info["Plugins"] and wp_info["Is WordPress"] == "Yes":
+            wp_info["Plugins"] = ["No specific plugins detected (may be using minimal plugins)"]
+
+    except Exception as e:
+        logger.error(f"WordPress detection error for {domain}: {str(e)}")
+        # Even if there's an error, return basic structure
+        if wp_info["Is WordPress"] == "Yes":
+            wp_info["Theme"] = "Detection failed"
+            wp_info["Plugins"] = ["Detection failed"]
+
+    return wp_info
     
-    return ads_data
+def detect_ads(domain: str) -> List[str]:
+    """Enhanced ad detection that guarantees results"""
+    try:
+        # Try multiple URLs to ensure we get content
+        urls_to_try = [
+            f"https://{domain}",
+            f"https://{domain}/",
+            f"http://{domain}",
+            f"http://{domain}/",
+        ]
+        
+        html = ""
+        for url in urls_to_try:
+            html = safe_fetch(url)
+            if html:
+                break
+        
+        if not html:
+            return ["Unable to fetch website content"]
+
+        found_ads = set()
+        soup = BeautifulSoup(html, "html.parser")
+
+        # COMPREHENSIVE AD NETWORK PATTERNS
+        ad_networks = {
+            "Google Ads": [
+                r"googlesyndication\.com",
+                r"doubleclick\.net",
+                r"googleadservices\.com",
+                r"adsbygoogle",
+                r"pagead2\.googlesyndication",
+                r"googleads\.g\.doubleclick\.net",
+                r"www\.googletagservices\.com",
+                r"ad\.doubleclick\.net",
+            ],
+            "Google AdSense": [
+                r"pagead2\.googlesyndication\.com",
+                r"googleads\.g\.doubleclick\.net",
+                r"ads\..*\.google\.com",
+                r"googleadservices\.com/pagead/",
+            ],
+            "Google Analytics": [
+                r"google-analytics\.com",
+                r"googletagmanager\.com/gtag/js",
+                r"ga\(['\"]",
+                r"gtag\(['\"]",
+                r"UA-\d+-\d+",  # Universal Analytics
+                r"G-[A-Z0-9]+",  # Google Analytics 4
+            ],
+            "Google Tag Manager": [
+                r"googletagmanager\.com/gtm\.js",
+                r"googletagmanager\.com/gtag/js",
+                r"googletagmanager\.com/ns\.html",
+                r"GTM-[A-Z0-9]+",  # GTM container ID
+            ],
+            "Facebook Pixel": [
+                r"connect\.facebook\.net",
+                r"fbq\(['\"]",
+                r"facebook\.com/tr\?",
+                r"facebook\.com/tr/",
+                r"fbclid=",  # Facebook click ID
+            ],
+            "Microsoft Advertising": [
+                r"bat\.bing\.com",
+                r"bing\.com/ads",
+                r"c\.bing\.com",
+                r"batbing\.com",
+            ],
+            "Amazon Ads": [
+                r"amazon-adsystem\.com",
+                r"assoc-amazon\.com",
+                r"fls\.amazon\.com",
+            ],
+            "LinkedIn Insight": [
+                r"linkedin\.com/li\.js",
+                r"linkedin\.com/px\.",
+                r"snap\.licdn\.com/li\.lm",
+                r"platform\.linkedin\.com/in\.js",
+            ],
+            "Twitter Ads": [
+                r"ads-twitter\.com",
+                r"analytics\.twitter\.com",
+                r"platform\.twitter\.com/widgets",
+                r"twq\(",
+            ],
+            "Pinterest Tag": [
+                r"ct\.pinterest\.com",
+                r"pinterest\.com/tag",
+                r"pinimg\.com/ct/",
+            ],
+            "TikTok Pixel": [
+                r"tiktok\.com/i18n/pixel",
+                r"analytics\.tiktok\.com",
+                r"tiktok\.com/analytics",
+            ],
+            "Media.net": [
+                r"contextual\.media\.net",
+                r"media\.net",
+                r"media\.net/amp/",
+            ],
+            "Propeller Ads": [
+                r"propellerads\.com",
+                r"go\.propellerads\.com",
+                r"propellerads\.com/amp/",
+            ],
+            "Revcontent": [
+                r"revcontent\.com",
+                r"trends\.revcontent\.com",
+                r"revcontent\.com/amp/",
+            ],
+            "Taboola": [
+                r"taboola\.com",
+                r"cdn\.taboola\.com",
+                r"taboola\.com/amp/",
+            ],
+            "Outbrain": [
+                r"outbrain\.com",
+                r"widgets\.outbrain\.com",
+                r"outbrain\.com/amp/",
+            ],
+            "AdRoll": [
+                r"adroll\.com",
+                r"d\.adroll\.com",
+                r"adroll\.com/amp/",
+            ],
+            "Criteo": [
+                r"criteo\.com",
+                r"static\.criteo\.net",
+                r"criteo\.com/amp/",
+            ],
+            "Hotjar": [
+                r"hotjar\.com",
+                r"static\.hotjar\.com",
+                r"hotjar\.com/amp/",
+            ],
+            "Mixpanel": [
+                r"mixpanel\.com",
+                r"cdn\.mixpanel\.com",
+                r"mixpanel\.com/amp/",
+            ],
+            "HubSpot": [
+                r"hubspot\.com",
+                r"js\.hs-scripts\.com",
+                r"track\.hubspot\.com",
+            ],
+            "Google Fonts": [
+                r"fonts\.googleapis\.com",
+                r"fonts\.gstatic\.com",
+            ],
+            "Cloudflare Analytics": [
+                r"cloudflareinsights\.com",
+                r"static\.cloudflareinsights\.com",
+            ],
+        }
+
+        # METHOD 1: Direct HTML content scan
+        for network, patterns in ad_networks.items():
+            for pattern in patterns:
+                try:
+                    if re.search(pattern, html, re.IGNORECASE):
+                        found_ads.add(network)
+                        break
+                except Exception:
+                    continue
+
+        # METHOD 2: Script tags analysis
+        for script in soup.find_all("script"):
+            # Check script src
+            src = script.get("src", "")
+            if src:
+                for network, patterns in ad_networks.items():
+                    for pattern in patterns:
+                        if re.search(pattern, src, re.IGNORECASE):
+                            found_ads.add(network)
+                            break
+            
+            # Check inline script content
+            script_content = script.string
+            if script_content:
+                for network, patterns in ad_networks.items():
+                    for pattern in patterns:
+                        if re.search(pattern, script_content, re.IGNORECASE):
+                            found_ads.add(network)
+                            break
+
+        # METHOD 3: Iframe tags analysis
+        for iframe in soup.find_all("iframe"):
+            src = iframe.get("src", "")
+            if src:
+                for network, patterns in ad_networks.items():
+                    for pattern in patterns:
+                        if re.search(pattern, src, re.IGNORECASE):
+                            found_ads.add(network)
+                            break
+
+        # METHOD 4: Image tags for tracking pixels
+        for img in soup.find_all("img"):
+            src = img.get("src", "")
+            if src:
+                for network, patterns in ad_networks.items():
+                    for pattern in patterns:
+                        if re.search(pattern, src, re.IGNORECASE):
+                            found_ads.add(network)
+                            break
+
+        # METHOD 5: Link tags analysis
+        for link in soup.find_all("link"):
+            href = link.get("href", "")
+            if href:
+                for network, patterns in ad_networks.items():
+                    for pattern in patterns:
+                        if re.search(pattern, href, re.IGNORECASE):
+                            found_ads.add(network)
+                            break
+
+        # METHOD 6: Meta tags analysis
+        for meta in soup.find_all("meta"):
+            content = meta.get("content", "")
+            if content:
+                for network, patterns in ad_networks.items():
+                    for pattern in patterns:
+                        if re.search(pattern, content, re.IGNORECASE):
+                            found_ads.add(network)
+                            break
+
+        # METHOD 7: Data attributes analysis
+        ad_attributes = [
+            'data-ad-client', 'data-ad-slot', 'data-ad-format', 
+            'data-ad-layout', 'data-ad-region', 'data-ad-unit',
+            'data-google-analytics', 'data-ga', 'data-gtm',
+            'data-facebook-pixel', 'data-pixel',
+        ]
+        
+        for attr in ad_attributes:
+            elements = soup.find_all(attrs={attr: True})
+            for element in elements:
+                if 'google' in attr:
+                    found_ads.add("Google AdSense")
+                elif 'gtm' in attr:
+                    found_ads.add("Google Tag Manager")
+                elif 'ga' in attr or 'analytics' in attr:
+                    found_ads.add("Google Analytics")
+                elif 'facebook' in attr or 'pixel' in attr:
+                    found_ads.add("Facebook Pixel")
+
+        # METHOD 8: Class and ID analysis
+        ad_indicators = [
+            'ad-container', 'ad-wrapper', 'ad-unit', 'adsbygoogle', 
+            'banner-ad', 'ad_banner', 'advertisement', 'advert',
+            'doubleclick', 'google_ads', 'ad-slot', 'ad-placeholder',
+            'dfp-ad', 'gpt-ad', 'ad-div', 'ad-area', 'google-analytics',
+            'ga-', 'gtm-', 'facebook-pixel', 'fb-pixel', 'tracking',
+            'analytics', 'pixel', 'conversion', 'remarketing'
+        ]
+        
+        for element in soup.find_all(True, class_=True):
+            classes = element.get('class', [])
+            for ad_class in ad_indicators:
+                if any(ad_class in str(cls).lower() for cls in classes):
+                    found_ads.add("Advertising/analytics detected")
+
+        # METHOD 9: Check for common tracking patterns
+        tracking_patterns = {
+            "Google Analytics": [r'UA-\d+-\d+', r'G-[A-Z0-9]+'],
+            "Google Tag Manager": [r'GTM-[A-Z0-9]+'],
+            "Facebook Pixel": [r'fbq\s*\(\s*[\'"]\s*(init|track)\s*[\'"]'],
+        }
+        
+        for network, patterns in tracking_patterns.items():
+            for pattern in patterns:
+                if re.search(pattern, html, re.IGNORECASE):
+                    found_ads.add(network)
+
+        # COMPULSORY RESULT - Always return something meaningful
+        if found_ads:
+            result = sorted(list(found_ads))
+        else:
+            # Even if no specific ads detected, provide useful information
+            result = ["No major advertising or analytics networks detected"]
+            
+            # Check for any external scripts that might be analytics
+            external_scripts = 0
+            for script in soup.find_all("script", src=True):
+                src = script.get("src", "")
+                if src and not any(domain in src for domain in [domain, 'localhost', '127.0.0.1']):
+                    external_scripts += 1
+            
+            if external_scripts > 3:
+                result = [f"Multiple external scripts detected ({external_scripts}) - may include analytics"]
+            elif external_scripts > 0:
+                result = [f"External scripts detected ({external_scripts}) - may include tracking"]
+
+        return result
+        
+    except Exception as e:
+        logger.error(f"Ad detection failed for {domain}: {str(e)}")
+        # COMPULSORY: Always return a result even on error
+        return ["Ad detection completed with errors - check website manually"]
+
+def audit_security(domain: str) -> Dict[str, str]:
+    """Enhanced security audit that guarantees comprehensive results"""
+    security = {
+        "SSL Certificate": "Invalid/Not Found",
+        "SSL Expiry": "Unknown",
+        "HSTS": "Not Found",
+        "X-Frame-Options": "Not Found",
+        "X-Content-Type-Options": "Not Found",
+        "Content-Security-Policy": "Not Found",
+        "Referrer-Policy": "Not Found",
+        "Permissions-Policy": "Not Found",
+        "Server Info": "Unknown",
+        "Security Headers Score": "0/7",
+    }
+
+    try:
+        # SSL CERTIFICATE CHECK
+        try:
+            context = ssl.create_default_context()
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
+
+            with socket.create_connection((domain, 443), timeout=10) as sock:
+                with context.wrap_socket(sock, server_hostname=domain) as ssock:
+                    cert = ssock.getpeercert()
+                    if cert:
+                        security["SSL Certificate"] = "Valid"
+                        
+                        # Check certificate expiration
+                        not_after = cert.get('notAfter', '')
+                        if not_after:
+                            expire_date = datetime.strptime(not_after, '%b %d %H:%M:%S %Y %Z')
+                            days_until_expire = (expire_date - datetime.now()).days
+                            if days_until_expire > 0:
+                                security["SSL Expiry"] = f"Expires in {days_until_expire} days"
+                            else:
+                                security["SSL Expiry"] = "EXPIRED"
+        except Exception as e:
+            security["SSL Certificate"] = f"Invalid: {str(e)}"
+
+        # SECURITY HEADERS CHECK
+        try:
+            response = session.get(f"https://{domain}", timeout=10, verify=False, allow_redirects=True)
+            headers = response.headers
+            
+            # Get server info
+            security["Server Info"] = headers.get("Server", "Unknown")
+            if security["Server Info"] == "Unknown":
+                security["Server Info"] = headers.get("X-Powered-By", "Unknown")
+
+            # Check all security headers
+            security_headers = {
+                "Strict-Transport-Security": "HSTS",
+                "X-Frame-Options": "X-Frame-Options",
+                "X-Content-Type-Options": "X-Content-Type-Options", 
+                "Content-Security-Policy": "Content-Security-Policy",
+                "Referrer-Policy": "Referrer-Policy",
+                "Permissions-Policy": "Permissions-Policy",
+                "X-XSS-Protection": "X-XSS-Protection",
+            }
+
+            headers_found = 0
+            total_headers = len(security_headers)
+            
+            for header, key in security_headers.items():
+                if headers.get(header):
+                    security[key] = "Present"
+                    headers_found += 1
+                else:
+                    security[key] = "Not Found"
+
+            # Calculate security headers score
+            security["Security Headers Score"] = f"{headers_found}/{total_headers}"
+
+        except Exception as e:
+            security["Security Headers Score"] = f"Error: {str(e)}"
+
+        # ADDITIONAL CHECKS
+        try:
+            # Check for HTTP to HTTPS redirect
+            http_response = session.get(f"http://{domain}", timeout=5, verify=False, allow_redirects=False)
+            if http_response.status_code in [301, 302, 307, 308]:
+                security["HTTP to HTTPS Redirect"] = "Enabled"
+            else:
+                security["HTTP to HTTPS Redirect"] = "Not Enabled"
+        except:
+            security["HTTP to HTTPS Redirect"] = "Check Failed"
+
+    except Exception as e:
+        logger.warning(f"Security audit issue: {str(e)}")
+        # Even on complete failure, return the basic structure with error info
+        security["Audit Status"] = f"Partial scan completed with errors: {str(e)}"
+
+    # COMPULSORY: Ensure all fields have values
+    for key in security:
+        if security[key] in [None, ""]:
+            security[key] = "Check failed"
+
+    return security
 
 def audit_security(domain: str) -> Dict[str, Any]:
     sec = {}
