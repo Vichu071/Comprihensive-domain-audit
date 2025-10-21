@@ -691,8 +691,8 @@ def detect_ads(domain: str) -> List[str]:
 # 🔒 Security Audit
 # ============================================================
 
-def audit_security(domain: str) -> Dict[str, Any]:
-    """Enhanced security audit with comprehensive checks"""
+def audit_security(domain: str) -> Dict[str, str]:
+    """Enhanced security audit that guarantees comprehensive results"""
     security = {
         "SSL Certificate": "Invalid/Not Found",
         "SSL Expiry": "Unknown",
@@ -700,8 +700,10 @@ def audit_security(domain: str) -> Dict[str, Any]:
         "X-Frame-Options": "Not Found",
         "X-Content-Type-Options": "Not Found",
         "Content-Security-Policy": "Not Found",
+        "Referrer-Policy": "Not Found",
+        "Permissions-Policy": "Not Found",
         "Server Info": "Unknown",
-        "Security Headers Score": "0/6",
+        "Security Headers Score": "0/7",
     }
 
     try:
@@ -747,6 +749,7 @@ def audit_security(domain: str) -> Dict[str, Any]:
                 "Content-Security-Policy": "Content-Security-Policy",
                 "Referrer-Policy": "Referrer-Policy",
                 "Permissions-Policy": "Permissions-Policy",
+                "X-XSS-Protection": "X-XSS-Protection",
             }
 
             headers_found = 0
@@ -765,8 +768,21 @@ def audit_security(domain: str) -> Dict[str, Any]:
         except Exception as e:
             security["Security Headers Score"] = f"Error: {str(e)}"
 
+        # ADDITIONAL CHECKS
+        try:
+            # Check for HTTP to HTTPS redirect
+            http_response = session.get(f"http://{domain}", timeout=5, verify=False, allow_redirects=False)
+            if http_response.status_code in [301, 302, 307, 308]:
+                security["HTTP to HTTPS Redirect"] = "Enabled"
+            else:
+                security["HTTP to HTTPS Redirect"] = "Not Enabled"
+        except:
+            security["HTTP to HTTPS Redirect"] = "Check Failed"
+
     except Exception as e:
         logger.warning(f"Security audit issue: {str(e)}")
+        # Even on complete failure, return the basic structure with error info
+        security["Audit Status"] = f"Partial scan completed with errors: {str(e)}"
 
     # COMPULSORY: Ensure all fields have values
     for key in security:
@@ -775,6 +791,43 @@ def audit_security(domain: str) -> Dict[str, Any]:
 
     return security
 
+def audit_security(domain: str) -> Dict[str, Any]:
+    sec = {}
+    
+    try:
+        ctx = ssl.create_default_context()
+        with socket.create_connection((domain, 443), timeout=10) as sock:
+            with ctx.wrap_socket(sock, server_hostname=domain) as ssock:
+                cert = ssock.getpeercert()
+                if cert:
+                    sec["SSL"] = "Valid"
+                    sec["TLS"] = ssock.version()
+                    
+                    if "notAfter" in cert:
+                        expiry_date = datetime.strptime(cert["notAfter"], '%b %d %H:%M:%S %Y %Z')
+                        days_until_expiry = (expiry_date - datetime.utcnow()).days
+                        sec["Expires"] = f"{expiry_date.strftime('%Y-%m-%d')} ({days_until_expiry} days)"
+    except Exception:
+        sec["SSL"] = "Invalid"
+    
+    html, _, headers = fetch_with_fallback(domain)
+    if headers:
+        security_headers = []
+        headers_lower = {k.lower(): v for k, v in headers.items()}
+        
+        if "strict-transport-security" in headers_lower:
+            security_headers.append("HSTS")
+        if "content-security-policy" in headers_lower:
+            security_headers.append("CSP")
+        if "x-frame-options" in headers_lower:
+            security_headers.append("X-Frame-Options")
+        if "x-content-type-options" in headers_lower:
+            security_headers.append("X-Content-Type-Options")
+        
+        if security_headers:
+            sec["Security Headers"] = security_headers
+    
+    return security
 # ============================================================
 # ⚡ Performance Analysis
 # ============================================================
