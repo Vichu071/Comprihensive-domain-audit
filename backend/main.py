@@ -639,7 +639,7 @@ def detect_wordpress(domain: str) -> Dict[str, Any]:
     return wp_info
     
 def detect_ads(domain: str) -> List[str]:
-    """Enhanced ad detection that guarantees results"""
+    """Enhanced ad detection that guarantees results."""
     try:
         # Try multiple URLs to ensure we get content
         urls_to_try = [
@@ -664,136 +664,57 @@ def detect_ads(domain: str) -> List[str]:
         # COMPREHENSIVE AD NETWORK PATTERNS
         ad_networks = {
             "Google Ads": [
-                r"googlesyndication\.com",
-                r"doubleclick\.net",
-                r"googleadservices\.com",
-                r"adsbygoogle",
-                r"pagead2\.googlesyndication",
-                r"googleads\.g\.doubleclick\.net",
-                r"www\.googletagservices\.com",
-                r"ad\.doubleclick\.net",
+                r"googlesyndication\.com", r"doubleclick\.net", r"googleadservices\.com",
+                r"adsbygoogle", r"pagead2\.googlesyndication", r"googleads\.g\.doubleclick\.net",
+                r"www\.googletagservices\.com", r"ad\.doubleclick\.net",
             ],
             "Google AdSense": [
-                r"pagead2\.googlesyndication\.com",
-                r"googleads\.g\.doubleclick\.net",
-                r"ads\..*\.google\.com",
-                r"googleadservices\.com/pagead/",
+                r"pagead2\.googlesyndication\.com", r"googleads\.g\.doubleclick\.net",
+                r"ads\..*\.google\.com", r"googleadservices\.com/pagead/",
             ],
             "Google Analytics": [
-                r"google-analytics\.com",
-                r"googletagmanager\.com/gtag/js",
-                r"ga\(['\"]",
-                r"gtag\(['\"]",
-                r"UA-\d+-\d+",  # Universal Analytics
-                r"G-[A-Z0-9]+",  # Google Analytics 4
+                r"google-analytics\.com", r"googletagmanager\.com/gtag/js",
+                r"ga\(['\"]", r"gtag\(['\"]", r"UA-\d+-\d+", r"G-[A-Z0-9]+",
             ],
             "Google Tag Manager": [
-                r"googletagmanager\.com/gtm\.js",
-                r"googletagmanager\.com/gtag/js",
-                r"googletagmanager\.com/ns\.html",
-                r"GTM-[A-Z0-9]+",  # GTM container ID
+                r"googletagmanager\.com/gtm\.js", r"googletagmanager\.com/gtag/js",
+                r"googletagmanager\.com/ns\.html", r"GTM-[A-Z0-9]+",
             ],
             "Facebook Pixel": [
-                r"connect\.facebook\.net",
-                r"fbq\(['\"]",
-                r"facebook\.com/tr\?",
-                r"facebook\.com/tr/",
-                r"fbclid=",  # Facebook click ID
+                r"connect\.facebook\.net", r"fbq\(['\"]", r"facebook\.com/tr",
+                r"fbclid=", r"pixel\.facebook\.com",
             ],
             "Microsoft Advertising": [
-                r"bat\.bing\.com",
-                r"bing\.com/ads",
-                r"c\.bing\.com",
-                r"batbing\.com",
+                r"bat\.bing\.com", r"bing\.com/ads", r"c\.bing\.com", r"batbing\.com",
             ],
             "Amazon Ads": [
-                r"amazon-adsystem\.com",
-                r"assoc-amazon\.com",
-                r"fls\.amazon\.com",
+                r"amazon-adsystem\.com", r"assoc-amazon\.com", r"fls\.amazon\.com",
             ],
             "LinkedIn Insight": [
-                r"linkedin\.com/li\.js",
-                r"linkedin\.com/px\.",
-                r"snap\.licdn\.com/li\.lm",
+                r"linkedin\.com/li\.js", r"linkedin\.com/px\.", r"snap\.licdn\.com/li\.lm",
                 r"platform\.linkedin\.com/in\.js",
             ],
             "Twitter Ads": [
-                r"ads-twitter\.com",
-                r"analytics\.twitter\.com",
-                r"platform\.twitter\.com/widgets",
-                r"twq\(",
+                r"ads-twitter\.com", r"analytics\.twitter\.com",
+                r"platform\.twitter\.com/widgets", r"twq\(",
             ],
-            "Pinterest Tag": [
-                r"ct\.pinterest\.com",
-                r"pinterest\.com/tag",
-                r"pinimg\.com/ct/",
-            ],
-            "TikTok Pixel": [
-                r"tiktok\.com/i18n/pixel",
-                r"analytics\.tiktok\.com",
-                r"tiktok\.com/analytics",
-            ],
-            "Media.net": [
-                r"contextual\.media\.net",
-                r"media\.net",
-                r"media\.net/amp/",
-            ],
-            "Propeller Ads": [
-                r"propellerads\.com",
-                r"go\.propellerads\.com",
-                r"propellerads\.com/amp/",
-            ],
-            "Revcontent": [
-                r"revcontent\.com",
-                r"trends\.revcontent\.com",
-                r"revcontent\.com/amp/",
-            ],
-            "Taboola": [
-                r"taboola\.com",
-                r"cdn\.taboola\.com",
-                r"taboola\.com/amp/",
-            ],
-            "Outbrain": [
-                r"outbrain\.com",
-                r"widgets\.outbrain\.com",
-                r"outbrain\.com/amp/",
-            ],
-            "AdRoll": [
-                r"adroll\.com",
-                r"d\.adroll\.com",
-                r"adroll\.com/amp/",
-            ],
-            "Criteo": [
-                r"criteo\.com",
-                r"static\.criteo\.net",
-                r"criteo\.com/amp/",
-            ],
-            "Hotjar": [
-                r"hotjar\.com",
-                r"static\.hotjar\.com",
-                r"hotjar\.com/amp/",
-            ],
-            "Mixpanel": [
-                r"mixpanel\.com",
-                r"cdn\.mixpanel\.com",
-                r"mixpanel\.com/amp/",
-            ],
-            "HubSpot": [
-                r"hubspot\.com",
-                r"js\.hs-scripts\.com",
-                r"track\.hubspot\.com",
-            ],
-            "Google Fonts": [
-                r"fonts\.googleapis\.com",
-                r"fonts\.gstatic\.com",
-            ],
-            "Cloudflare Analytics": [
-                r"cloudflareinsights\.com",
-                r"static\.cloudflareinsights\.com",
-            ],
+            "Pinterest Tag": [r"ct\.pinterest\.com", r"pinterest\.com/tag", r"pinimg\.com/ct/"],
+            "TikTok Pixel": [r"tiktok\.com/i18n/pixel", r"analytics\.tiktok\.com", r"tiktok\.com/analytics"],
+            "Media.net": [r"contextual\.media\.net", r"media\.net"],
+            "Propeller Ads": [r"propellerads\.com", r"go\.propellerads\.com"],
+            "Revcontent": [r"revcontent\.com", r"trends\.revcontent\.com"],
+            "Taboola": [r"taboola\.com", r"cdn\.taboola\.com"],
+            "Outbrain": [r"outbrain\.com", r"widgets\.outbrain\.com"],
+            "AdRoll": [r"adroll\.com", r"d\.adroll\.com"],
+            "Criteo": [r"criteo\.com", r"static\.criteo\.net"],
+            "Hotjar": [r"hotjar\.com", r"static\.hotjar\.com"],
+            "Mixpanel": [r"mixpanel\.com", r"cdn\.mixpanel\.com"],
+            "HubSpot": [r"hubspot\.com", r"js\.hs-scripts\.com", r"track\.hubspot\.com"],
+            "Google Fonts": [r"fonts\.googleapis\.com", r"fonts\.gstatic\.com"],
+            "Cloudflare Analytics": [r"cloudflareinsights\.com", r"static\.cloudflareinsights\.com"],
         }
 
-        # METHOD 1: Direct HTML content scan
+        # METHOD 1: Direct HTML scan
         for network, patterns in ad_networks.items():
             for pattern in patterns:
                 try:
@@ -803,77 +724,54 @@ def detect_ads(domain: str) -> List[str]:
                 except Exception:
                     continue
 
-        # METHOD 2: Script tags analysis
+        # METHOD 2: Script tags
         for script in soup.find_all("script"):
-            # Check script src
             src = script.get("src", "")
-            if src:
-                for network, patterns in ad_networks.items():
-                    for pattern in patterns:
-                        if re.search(pattern, src, re.IGNORECASE):
-                            found_ads.add(network)
-                            break
-            
-            # Check inline script content
-            script_content = script.string
-            if script_content:
-                for network, patterns in ad_networks.items():
-                    for pattern in patterns:
-                        if re.search(pattern, script_content, re.IGNORECASE):
-                            found_ads.add(network)
-                            break
+            script_content = script.string or ""
+            for network, patterns in ad_networks.items():
+                for pattern in patterns:
+                    if (src and re.search(pattern, src, re.IGNORECASE)) or \
+                       (script_content and re.search(pattern, script_content, re.IGNORECASE)):
+                        found_ads.add(network)
+                        break
 
-        # METHOD 3: Iframe tags analysis
+        # METHOD 3: Iframes
         for iframe in soup.find_all("iframe"):
             src = iframe.get("src", "")
-            if src:
-                for network, patterns in ad_networks.items():
-                    for pattern in patterns:
-                        if re.search(pattern, src, re.IGNORECASE):
-                            found_ads.add(network)
-                            break
+            for network, patterns in ad_networks.items():
+                if any(re.search(pattern, src, re.IGNORECASE) for pattern in patterns):
+                    found_ads.add(network)
 
-        # METHOD 4: Image tags for tracking pixels
+        # METHOD 4: Images (tracking pixels)
         for img in soup.find_all("img"):
             src = img.get("src", "")
-            if src:
-                for network, patterns in ad_networks.items():
-                    for pattern in patterns:
-                        if re.search(pattern, src, re.IGNORECASE):
-                            found_ads.add(network)
-                            break
+            for network, patterns in ad_networks.items():
+                if any(re.search(pattern, src, re.IGNORECASE) for pattern in patterns):
+                    found_ads.add(network)
 
-        # METHOD 5: Link tags analysis
+        # METHOD 5: Links
         for link in soup.find_all("link"):
             href = link.get("href", "")
-            if href:
-                for network, patterns in ad_networks.items():
-                    for pattern in patterns:
-                        if re.search(pattern, href, re.IGNORECASE):
-                            found_ads.add(network)
-                            break
+            for network, patterns in ad_networks.items():
+                if any(re.search(pattern, href, re.IGNORECASE) for pattern in patterns):
+                    found_ads.add(network)
 
-        # METHOD 6: Meta tags analysis
+        # METHOD 6: Meta tags
         for meta in soup.find_all("meta"):
             content = meta.get("content", "")
-            if content:
-                for network, patterns in ad_networks.items():
-                    for pattern in patterns:
-                        if re.search(pattern, content, re.IGNORECASE):
-                            found_ads.add(network)
-                            break
+            for network, patterns in ad_networks.items():
+                if any(re.search(pattern, content, re.IGNORECASE) for pattern in patterns):
+                    found_ads.add(network)
 
-        # METHOD 7: Data attributes analysis
-        ad_attributes = [
-            'data-ad-client', 'data-ad-slot', 'data-ad-format', 
+        # METHOD 7: Data attributes
+        ad_attrs = [
+            'data-ad-client', 'data-ad-slot', 'data-ad-format',
             'data-ad-layout', 'data-ad-region', 'data-ad-unit',
             'data-google-analytics', 'data-ga', 'data-gtm',
             'data-facebook-pixel', 'data-pixel',
         ]
-        
-        for attr in ad_attributes:
-            elements = soup.find_all(attrs={attr: True})
-            for element in elements:
+        for attr in ad_attrs:
+            if soup.find(attrs={attr: True}):
                 if 'google' in attr:
                     found_ads.add("Google AdSense")
                 elif 'gtm' in attr:
@@ -883,58 +781,46 @@ def detect_ads(domain: str) -> List[str]:
                 elif 'facebook' in attr or 'pixel' in attr:
                     found_ads.add("Facebook Pixel")
 
-        # METHOD 8: Class and ID analysis
+        # METHOD 8: Class and ID indicators
         ad_indicators = [
-            'ad-container', 'ad-wrapper', 'ad-unit', 'adsbygoogle', 
-            'banner-ad', 'ad_banner', 'advertisement', 'advert',
-            'doubleclick', 'google_ads', 'ad-slot', 'ad-placeholder',
-            'dfp-ad', 'gpt-ad', 'ad-div', 'ad-area', 'google-analytics',
-            'ga-', 'gtm-', 'facebook-pixel', 'fb-pixel', 'tracking',
-            'analytics', 'pixel', 'conversion', 'remarketing'
+            'ad-container', 'ad-wrapper', 'ad-unit', 'adsbygoogle',
+            'banner-ad', 'advertisement', 'doubleclick', 'ad-slot',
+            'gtm-', 'ga-', 'facebook-pixel', 'tracking', 'analytics',
+            'remarketing', 'conversion', 'pixel'
         ]
-        
         for element in soup.find_all(True, class_=True):
-            classes = element.get('class', [])
-            for ad_class in ad_indicators:
-                if any(ad_class in str(cls).lower() for cls in classes):
-                    found_ads.add("Advertising/analytics detected")
+            classes = " ".join(element.get("class", []))
+            if any(ind in classes.lower() for ind in ad_indicators):
+                found_ads.add("Advertising/analytics detected")
 
-        # METHOD 9: Check for common tracking patterns
+        # METHOD 9: Tracking patterns
         tracking_patterns = {
             "Google Analytics": [r'UA-\d+-\d+', r'G-[A-Z0-9]+'],
             "Google Tag Manager": [r'GTM-[A-Z0-9]+'],
             "Facebook Pixel": [r'fbq\s*\(\s*[\'"]\s*(init|track)\s*[\'"]'],
         }
-        
         for network, patterns in tracking_patterns.items():
             for pattern in patterns:
                 if re.search(pattern, html, re.IGNORECASE):
                     found_ads.add(network)
 
-        # COMPULSORY RESULT - Always return something meaningful
+        # FINAL OUTPUT
         if found_ads:
-            result = sorted(list(found_ads))
+            return sorted(list(found_ads))
         else:
-            # Even if no specific ads detected, provide useful information
-            result = ["No major advertising or analytics networks detected"]
-            
-            # Check for any external scripts that might be analytics
-            external_scripts = 0
-            for script in soup.find_all("script", src=True):
-                src = script.get("src", "")
-                if src and not any(domain in src for domain in [domain, 'localhost', '127.0.0.1']):
-                    external_scripts += 1
-            
-            if external_scripts > 3:
-                result = [f"Multiple external scripts detected ({external_scripts}) - may include analytics"]
-            elif external_scripts > 0:
-                result = [f"External scripts detected ({external_scripts}) - may include tracking"]
+            external_scripts = [
+                s.get("src", "") for s in soup.find_all("script", src=True)
+                if s.get("src") and domain not in s.get("src")
+            ]
+            if len(external_scripts) > 3:
+                return [f"Multiple external scripts detected ({len(external_scripts)}) - may include analytics"]
+            elif external_scripts:
+                return [f"External scripts detected ({len(external_scripts)}) - may include tracking"]
+            else:
+                return ["No major advertising or analytics networks detected"]
 
-        return result
-        
     except Exception as e:
         logger.error(f"Ad detection failed for {domain}: {str(e)}")
-        # COMPULSORY: Always return a result even on error
         return ["Ad detection completed with errors - check website manually"]
 
 def audit_security(domain: str) -> Dict[str, str]:
