@@ -567,7 +567,7 @@ def detect_ads_analytics(domain: str) -> Dict[str, List[str]]:
     return {k: v for k, v in data.items() if v}
 
 # ============================================================
-# ⚡ PERFORMANCE SECTION
+# ⚡ PERFORMANCE SECTION - FIXED
 # ============================================================
 
 def analyze_performance(domain: str) -> Dict[str, Any]:
@@ -589,6 +589,9 @@ def analyze_performance(domain: str) -> Dict[str, Any]:
     if not load_times:
         performance["Status"] = "Failed to load"
         performance["Rating"] = "F"
+        performance["Grade"] = "Failed"
+        performance["Load Time"] = "N/A"
+        performance["Page Size"] = "N/A"
         return performance
     
     # Calculate averages
