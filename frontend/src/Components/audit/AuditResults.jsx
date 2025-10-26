@@ -10,19 +10,18 @@ export default function AuditResults({ results = {}, onNewAudit }) {
   const [activeTab, setActiveTab] = useState("overview");
   const reportRef = useRef(null);
 
-  // Map the JSON structure to match your component
-  const payload = results?.Results || results || {};
-  const domain = results?.Domain || payload?.Domain || "";
+  // Map the new JSON structure from your Python API
+  const payload = results?.Results || {};
+  const domain = results?.Domain || "";
 
-  // Map all sections from the JSON response
-  const domainInfo = payload["Domain Info"] || {};
-  const hosting = payload.Hosting || {};
-  const email = payload.Email || {};
-  const technology = payload.Technology || {};
-  const wordpress = payload.WordPress || {};
-  const security = payload.Security || {};
-  const performance = payload.Performance || {};
-  const tracking = payload.Tracking || {};
+  // Map all sections from the new API response structure
+  const domainInfo = payload["🏷️ Domain Information"] || {};
+  const hosting = payload["🌐 Hosting Details"] || {};
+  const email = payload["📧 Email Setup"] || {};
+  const builtWith = payload["🛠️ Built With"] || {};
+  const security = payload["🔐 Security"] || {};
+  const adsAnalytics = payload["📊 Ads & Analytics"] || {};
+  const performance = payload["⚡ Performance"] || {};
 
   const exportPDF = async () => {
     if (!reportRef.current) return;
@@ -64,12 +63,13 @@ export default function AuditResults({ results = {}, onNewAudit }) {
 
   const StatusRow = ({ label, value }) => {
     const getStatusColor = (val) => {
-      if (val === "Yes" || val === "Valid" || val === "Excellent" || val === "Good" || val === "Success") 
+      if (val === "Yes" || val === "Valid" || val === "Excellent" || val === "Good" || val === "Success" || val === "A+" || val === "A") 
         return "#10B981";
-      if (val === "No" || val === "Invalid" || val === "Failed" || val === "Very Slow") 
+      if (val === "No" || val === "Invalid" || val === "Failed" || val === "Very Slow" || val === "F") 
         return "#EF4444";
-      if (val === "Average" || val === "Slow") 
+      if (val === "Average" || val === "Slow" || val === "B" || val === "C") 
         return "#F59E0B";
+      if (val === "D") return "#F97316";
       return "#6B7280";
     };
 
@@ -192,7 +192,7 @@ export default function AuditResults({ results = {}, onNewAudit }) {
 
   const ScoreBadge = ({ score, label }) => {
     const getScoreColor = (score) => {
-      if (score === "A") return "#10B981";
+      if (score === "A+" || score === "A") return "#10B981";
       if (score === "B") return "#34D399";
       if (score === "C") return "#F59E0B";
       if (score === "D") return "#F97316";
@@ -253,8 +253,11 @@ export default function AuditResults({ results = {}, onNewAudit }) {
         return <ObjectListRow key={key} label={formattedKey} items={value} />;
       } else {
         // Check if this should be a status row
-        const statusKeys = ['Detected', 'SSL', 'Status', 'Rating', 'Score'];
-        const isStatus = statusKeys.some(statusKey => key.includes(statusKey));
+        const statusKeys = ['Detected', 'SSL', 'Status', 'Rating', 'Score', 'Grade', 'Valid', 'Invalid', 'Found', 'Not Found'];
+        const isStatus = statusKeys.some(statusKey => 
+          key.includes(statusKey) || 
+          (typeof value === 'string' && statusKeys.some(sk => value.includes(sk)))
+        );
         
         if (isStatus) {
           return <StatusRow key={key} label={formattedKey} value={value} />;
@@ -265,9 +268,9 @@ export default function AuditResults({ results = {}, onNewAudit }) {
     });
   };
 
-  // Helper function to render technology data
-  const renderTechnologyData = (techData) => {
-    if (!techData || Object.keys(techData).length === 0) {
+  // Helper function to render built with data
+  const renderBuiltWithData = (builtWithData) => {
+    if (!builtWithData || Object.keys(builtWithData).length === 0) {
       return (
         <div style={{ 
           padding: "20px", 
@@ -281,10 +284,179 @@ export default function AuditResults({ results = {}, onNewAudit }) {
       );
     }
 
-    return Object.entries(techData).map(([category, items]) => {
-      const formattedCategory = category.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-      return <TechCategoryRow key={category} label={formattedCategory} items={items} />;
+    const mainTechInfo = {};
+    const toolsData = {};
+
+    // Separate main technology info from tools
+    Object.entries(builtWithData).forEach(([key, value]) => {
+      if (key === "Tools" && typeof value === 'object') {
+        Object.assign(toolsData, value);
+      } else {
+        mainTechInfo[key] = value;
+      }
     });
+
+    return (
+      <>
+        {/* Main Technology Information */}
+        {renderObjectData(mainTechInfo, "Built With")}
+        
+        {/* Tools Section */}
+        {Object.keys(toolsData).length > 0 && (
+          <>
+            <div style={{ 
+              fontSize: "16px", 
+              fontWeight: 700, 
+              color: "#111827", 
+              margin: "20px 0 10px 0",
+              paddingBottom: "8px",
+              borderBottom: "2px solid #E5E7EB"
+            }}>
+              Tools & Technologies
+            </div>
+            {Object.entries(toolsData).map(([category, items]) => {
+              const formattedCategory = category.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+              return <TechCategoryRow key={category} label={formattedCategory} items={items} />;
+            })}
+          </>
+        )}
+      </>
+    );
+  };
+
+  // Helper to render email setup
+  const renderEmailSetup = (emailData) => {
+    if (!emailData || Object.keys(emailData).length === 0) {
+      return (
+        <div style={{ 
+          padding: "20px", 
+          textAlign: "center", 
+          color: "#6B7280",
+          background: "#F9FAFB",
+          borderRadius: "8px"
+        }}>
+          No email configuration detected
+        </div>
+      );
+    }
+
+    return (
+      <>
+        {emailData["MX Records"] && (
+          <ListRow label="MX Records" items={emailData["MX Records"]} />
+        )}
+        {emailData.Provider && (
+          <Row label="Email Provider" value={emailData.Provider} />
+        )}
+        {emailData.SPF && (
+          <StatusRow label="SPF Record" value={emailData.SPF} />
+        )}
+      </>
+    );
+  };
+
+  // Helper to render hosting details
+  const renderHostingDetails = (hostingData) => {
+    if (!hostingData || Object.keys(hostingData).length === 0) {
+      return (
+        <div style={{ 
+          padding: "20px", 
+          textAlign: "center", 
+          color: "#6B7280",
+          background: "#F9FAFB",
+          borderRadius: "8px"
+        }}>
+          No hosting information available
+        </div>
+      );
+    }
+
+    return (
+      <>
+        {hostingData["IP Address"] && (
+          <Row label="IP Address" value={hostingData["IP Address"]} />
+        )}
+        {hostingData["Web Server"] && (
+          <Row label="Web Server" value={hostingData["Web Server"]} />
+        )}
+        {hostingData["Hosting Provider"] && (
+          <Row label="Hosting Provider" value={hostingData["Hosting Provider"]} />
+        )}
+      </>
+    );
+  };
+
+  // Helper to render performance metrics
+  const renderPerformanceMetrics = (perfData) => {
+    if (!perfData || Object.keys(perfData).length === 0 || perfData.Status === "Failed to load") {
+      return (
+        <div style={{ 
+          padding: "20px", 
+          textAlign: "center", 
+          color: "#EF4444",
+          background: "#FEF2F2",
+          borderRadius: "8px",
+          marginBottom: "16px"
+        }}>
+          Failed to load performance data
+        </div>
+      );
+    }
+
+    return (
+      <>
+        <div className="metrics-grid">
+          {perfData["Load Time"] && perfData["Load Time"] !== "N/A" && (
+            <div className="metric-card">
+              <div className="metric-value">{perfData["Load Time"]}</div>
+              <div className="metric-label">LOAD TIME</div>
+            </div>
+          )}
+          {perfData["Page Size"] && perfData["Page Size"] !== "N/A" && (
+            <div className="metric-card">
+              <div className="metric-value">{perfData["Page Size"]}</div>
+              <div className="metric-label">PAGE SIZE</div>
+            </div>
+          )}
+          {perfData.Rating && perfData.Rating !== "F" && (
+            <div className="metric-card">
+              <div className="metric-value">{perfData.Rating}</div>
+              <div className="metric-label">RATING</div>
+            </div>
+          )}
+          {perfData.Grade && perfData.Grade !== "Failed" && (
+            <div className="metric-card">
+              <div className="metric-value">{perfData.Grade}</div>
+              <div className="metric-label">GRADE</div>
+            </div>
+          )}
+        </div>
+        
+        {perfData.Insights && Array.isArray(perfData.Insights) && perfData.Insights.length > 0 && (
+          <div style={{ 
+            background: "#FFFBEB",
+            border: "1px solid #F59E0B",
+            borderRadius: "8px",
+            padding: "16px",
+            margin: "16px 0"
+          }}>
+            <div style={{ fontWeight: 600, color: "#92400E", marginBottom: "8px" }}>Performance Insights</div>
+            <ul style={{ margin: 0, paddingLeft: "20px", color: "#92400E" }}>
+              {perfData.Insights.map((insight, index) => (
+                <li key={index}>{insight}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        
+        {/* Show additional performance data */}
+        {Object.keys(perfData).length > 0 && (
+          <div style={{ marginTop: "20px" }}>
+            {renderObjectData(perfData, "Performance Details")}
+          </div>
+        )}
+      </>
+    );
   };
 
   return (
@@ -346,7 +518,7 @@ export default function AuditResults({ results = {}, onNewAudit }) {
           color: white;
           font-weight: 600;
           padding: 10px 16px;
-          border-radius: 10px;
+          borderRadius: 10px;
           cursor: pointer;
           transition: 0.2s;
         }
@@ -411,11 +583,10 @@ export default function AuditResults({ results = {}, onNewAudit }) {
                 ["domain", FiGlobe, "Domain Info"],
                 ["hosting", FiServer, "Hosting"],
                 ["email", FiMail, "Email"],
-                ["technology", FiCode, "Technology"],
-                ["wordpress", FiTrendingUp, "WordPress"],
+                ["builtwith", FiCode, "Built With"],
                 ["performance", FiZap, "Performance"],
                 ["security", FiShield, "Security"],
-                ["tracking", FiEye, "Tracking"],
+                ["tracking", FiEye, "Ads & Analytics"],
               ].map(([key, Icon, label]) => (
                 <button
                   key={key}
@@ -435,7 +606,7 @@ export default function AuditResults({ results = {}, onNewAudit }) {
             alignItems: "center", marginBottom: 30, flexWrap: "wrap", gap: 10
           }}>
             <h2 style={{ fontSize: 24, fontWeight: 700, color: "#111827" }}>
-              {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Audit Results
+              {activeTab === "builtwith" ? "Built With" : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Audit Results
             </h2>
 
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -456,10 +627,10 @@ export default function AuditResults({ results = {}, onNewAudit }) {
                 <div className="section-title">Quick Summary</div>
                 {renderObjectData({
                   Registrar: domainInfo.Registrar,
-                  "Hosting Provider": hosting.Provider,
+                  "Hosting Provider": hosting["Hosting Provider"],
                   "Email Provider": email.Provider,
-                  "WordPress Detected": wordpress.Detected,
-                  "SSL Status": security.SSL,
+                  "CMS": builtWith.CMS,
+                  "SSL Status": security["SSL Certificate"],
                   "Performance Rating": performance.Rating
                 })}
               </>
@@ -477,7 +648,7 @@ export default function AuditResults({ results = {}, onNewAudit }) {
             {activeTab === "hosting" && (
               <>
                 <div className="section-title">Hosting Information</div>
-                {renderObjectData(hosting)}
+                {renderHostingDetails(hosting)}
               </>
             )}
 
@@ -485,23 +656,15 @@ export default function AuditResults({ results = {}, onNewAudit }) {
             {activeTab === "email" && (
               <>
                 <div className="section-title">Email Configuration</div>
-                {renderObjectData(email)}
+                {renderEmailSetup(email)}
               </>
             )}
 
-            {/* TECHNOLOGY TAB */}
-            {activeTab === "technology" && (
+            {/* BUILT WITH TAB */}
+            {activeTab === "builtwith" && (
               <>
-                <div className="section-title">Technology Stack</div>
-                {renderTechnologyData(technology)}
-              </>
-            )}
-
-            {/* WORDPRESS TAB */}
-            {activeTab === "wordpress" && (
-              <>
-                <div className="section-title">WordPress Analysis</div>
-                {renderObjectData(wordpress)}
+                <div className="section-title">Built With</div>
+                {renderBuiltWithData(builtWith)}
               </>
             )}
 
@@ -509,47 +672,7 @@ export default function AuditResults({ results = {}, onNewAudit }) {
             {activeTab === "performance" && (
               <>
                 <div className="section-title">Performance Metrics</div>
-                {performance.Status === "Failed to load" ? (
-                  <div style={{ 
-                    padding: "20px", 
-                    textAlign: "center", 
-                    color: "#EF4444",
-                    background: "#FEF2F2",
-                    borderRadius: "8px"
-                  }}>
-                    Failed to load performance data
-                  </div>
-                ) : (
-                  <>
-                    <div className="metrics-grid">
-                      {performance["Load Time"] && (
-                        <div className="metric-card">
-                          <div className="metric-value">{performance["Load Time"]}</div>
-                          <div className="metric-label">LOAD TIME</div>
-                        </div>
-                      )}
-                      {performance["Page Size"] && (
-                        <div className="metric-card">
-                          <div className="metric-value">{performance["Page Size"]}</div>
-                          <div className="metric-label">PAGE SIZE</div>
-                        </div>
-                      )}
-                      {performance.Score && (
-                        <div className="metric-card">
-                          <div className="metric-value">{performance.Score}</div>
-                          <div className="metric-label">PERFORMANCE SCORE</div>
-                        </div>
-                      )}
-                      {performance.Rating && (
-                        <div className="metric-card">
-                          <div className="metric-value">{performance.Rating}</div>
-                          <div className="metric-label">RATING</div>
-                        </div>
-                      )}
-                    </div>
-                    {renderObjectData(performance)}
-                  </>
-                )}
+                {renderPerformanceMetrics(performance)}
               </>
             )}
 
@@ -561,11 +684,11 @@ export default function AuditResults({ results = {}, onNewAudit }) {
               </>
             )}
 
-            {/* TRACKING TAB */}
+            {/* ADS & ANALYTICS TAB */}
             {activeTab === "tracking" && (
               <>
-                <div className="section-title">Tracking & Analytics</div>
-                {renderObjectData(tracking)}
+                <div className="section-title">Ads & Analytics</div>
+                {renderObjectData(adsAnalytics)}
               </>
             )}
           </div>
